@@ -1,0 +1,50 @@
+# golangci-lint configuration — Go's "ESLint".
+# Run it with: golangci-lint run ./...
+# Aggregation through the Makefile: make lint
+# Docs: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  # Include test files in linting.
+  tests: true
+
+linters:
+  # Extended set: correctness + style + security, mirroring ESLint+Prettier.
+  enable:
+    - govet        # go vet checks
+    - staticcheck  # extensive static analysis
+    - errcheck     # unchecked errors
+    - gosimple     # simplify code
+    - ineffassign  # assignments to unused variables
+    - unused       # unused code/variables
+    - gofmt        # formatting drift (prettier-equivalent)
+    - goimports    # import grouping/ordering
+    - whitespace   # leading/trailing whitespace
+    - misspell     # misspellings in comments/strings (US locale)
+    - revive       # golint-compatible style rules
+    - gosec        # security problems
+    - gocritic     # stylish linting
+    - gocyclo      # cyclomatic complexity
+    - bodyclose    # ensure HTTP response bodies are closed
+    - prealloc     # preallocate slices with known size
+    - goconst      # repeated strings as constants
+    - unconvert    # unnecessary type conversions
+    - nakedret     # avoid naked returns
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - "disableStutteringCheck"
+  misspell:
+    locale: US
+  gosec:
+    excludes:
+      - G101 # hardcoded credentials (seeded via env defaults for dev)
+      - G107 # url from variable input
+
+issues:
+  # Fail on any finding (e.g. CI gate).
+  max-issues-per-linter: 0
+  max-same-issues: 0

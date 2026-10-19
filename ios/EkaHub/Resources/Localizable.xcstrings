@@ -1,0 +1,34 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "nav.dashboard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Dashboard" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Dasbor" } }
+      }
+    },
+    "nav.chat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "AI Assistant" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Asisten AI" } }
+      }
+    },
+    "nav.apps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Satellites" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Satelit" } }
+      }
+    },
+    "nav.profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Profile" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Profil" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

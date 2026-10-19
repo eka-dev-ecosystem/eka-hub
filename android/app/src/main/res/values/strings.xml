@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Personal AI Hub</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_chat">AI Assistant</string>
+    <string name="nav_apps">Connected Apps</string>
+    <string name="nav_profile">Profile</string>
+    
+    <string name="greeting_title">Daily AI Briefing</string>
+    <string name="live_sync">Live Sync</string>
+    <string name="connected_apps_title">Connected Satellites</string>
+    <string name="chat_placeholder">Ask about finances or tasks...</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="switch_account">Switch Account</string>
+    <string name="mismatch_title">Account Mismatch</string>
+    <string name="mismatch_desc">This link requires account:</string>
+    <string name="current_active_account">Active account:</string>
+</resources>

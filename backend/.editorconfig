@@ -1,0 +1,27 @@
+# Cross-editor consistency (indentation, charset, line endings).
+# https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+# gofmt standard: tabs
+indent_style = tab
+tab_width = 4
+
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json,html,css,js,ts,jsx,tsx,sh,env,example}]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab

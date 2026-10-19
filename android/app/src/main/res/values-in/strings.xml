@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Personal AI Hub</string>
+    <string name="nav_dashboard">Dasbor</string>
+    <string name="nav_chat">Asisten AI</string>
+    <string name="nav_apps">Aplikasi Terhubung</string>
+    <string name="nav_profile">Profil</string>
+    
+    <string name="greeting_title">Daily AI Briefing</string>
+    <string name="live_sync">Live Sync</string>
+    <string name="connected_apps_title">Satelit Terhubung</string>
+    <string name="chat_placeholder">Tanyakan pengeluaran atau tugas...</string>
+    <string name="sign_in">Masuk</string>
+    <string name="sign_out">Keluar</string>
+    <string name="switch_account">Ganti Akun</string>
+    <string name="mismatch_title">Akun Tidak Sesuai</string>
+    <string name="mismatch_desc">Tautan ini meminta akun:</string>
+    <string name="current_active_account">Akun aktif:</string>
+</resources>

@@ -1,0 +1,28 @@
+# Dockerfile for running migrations
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build migration tool
+RUN go build -o migrate cmd/migrate.go
+
+# Final stage
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy migration tool and migrations
+COPY --from=builder /app/migrate .
+COPY --from=builder /app/migrations ./migrations
+
+# Run migrations
+ENTRYPOINT ["./migrate"]
+CMD ["-action=up"]
+

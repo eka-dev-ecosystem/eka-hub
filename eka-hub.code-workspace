@@ -1,0 +1,70 @@
+{
+  "folders": [
+    {
+      "name": "🌟 Eka Hub (Life Aggregator)",
+      "path": "."
+    },
+    {
+      "name": "⚡ Hub Backend (Go / Fiber)",
+      "path": "backend"
+    },
+    {
+      "name": "📱 Hub Android (Native Kotlin/Compose)",
+      "path": "android"
+    },
+    {
+      "name": "🍎 Hub iOS (Native SwiftUI)",
+      "path": "ios"
+    },
+    {
+      "name": "🛡️ Hub Integration & Guards",
+      "path": "integration"
+    },
+    {
+      "name": "💰 F-Tracker (Ecosystem)",
+      "path": "../f-tracker"
+    },
+    {
+      "name": "💰 F-Tracker Mobile (Flutter)",
+      "path": "../f-tracker/mobile"
+    },
+    {
+      "name": "💰 F-Tracker Backend",
+      "path": "../f-tracker/be-ftraker"
+    },
+    {
+      "name": "📋 Task Management (Ecosystem)",
+      "path": "../task-management"
+    },
+    {
+      "name": "📋 Task Management Backend (Go)",
+      "path": "../task-management/backend"
+    },
+    {
+      "name": "📋 Task Management Android (Kotlin)",
+      "path": "../task-management/android"
+    },
+    {
+      "name": "📋 Task Management iOS (Swift)",
+      "path": "../task-management/ios"
+    }
+  ],
+  "settings": {
+    "workbench.editor.wrapTabs": false,
+    "workbench.editor.tabSizing": "shrink",
+    "go.useLanguageServer": true,
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/node_modules": true,
+      "**/.dart_tool": true,
+      "**/.build": true,
+      "**/build": false
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.dart_tool": true
+    }
+  }
+}
