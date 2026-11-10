@@ -28,5 +28,34 @@
 		<string>ftracker</string>
 		<string>taskhub</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Eka-Hub memerlukan Face ID untuk mengamankan autentikasi dan akses data personal AI Hub Anda.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Eka-Hub memerlukan izin mikrofon untuk perintah suara dan percakapan audio dengan asisten AI.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Eka-Hub memerlukan izin speech recognition untuk transkripsi perintah suara secara real-time.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Eka-Hub memerlukan akses kamera untuk pemindaian kode integrasi satelit dan analisis visual AI.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Eka-Hub memerlukan akses galeri foto untuk melampirkan gambar ke asisten AI.</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

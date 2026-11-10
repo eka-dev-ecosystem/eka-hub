@@ -33,3 +33,4 @@ gemini_api_key     = "YOUR_GOOGLE_GEMINI_API_KEY"
 # Satellite service URLs
 ftracker_api_base_url        = "https://f-tracker.eka-dev.cloud"
 task_management_api_base_url = "https://task-management.eka-dev.cloud"
+

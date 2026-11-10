@@ -3,7 +3,7 @@
 ## 1. App Identity
 - **App Name:** Personal AI Hub
 - **Subtitle:** Life Aggregator & AI Assistant
-- **Bundle ID:** `cloud.eka-dev.ekahub`
+- **Bundle ID:** `cloud.eka-dev.eka-hub`
 - **Primary Category:** Productivity
 - **Secondary Category:** Finance
 

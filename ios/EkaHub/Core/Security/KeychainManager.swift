@@ -5,7 +5,7 @@ public final class KeychainManager: @unchecked Sendable {
     public static let shared = KeychainManager()
     private init() {}
 
-    private let service = "cloud.eka-dev.ekahub"
+    private let service = "cloud.eka-dev.eka-hub"
 
     public func save(_ value: String, for key: String) {
         guard let data = value.data(using: .utf8) else { return }

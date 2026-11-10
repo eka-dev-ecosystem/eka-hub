@@ -139,3 +139,4 @@ variable "task_management_api_base_url" {
   type        = string
   default     = "https://task-management.eka-dev.cloud"
 }
+

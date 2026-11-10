@@ -60,13 +60,13 @@ public enum AppEnvironment: String, CaseIterable, Sendable {
         #endif
     }
 
-    public static let bundleIdentifier = "cloud.eka-dev.ekahub"
+    public static let bundleIdentifier = "cloud.eka-dev.eka-hub"
 
     public var baseURL: String {
         if let custom = EnvReader.value(for: "API_BASE_URL"), !custom.isEmpty {
             return custom
         }
-        return "https://be-hub.eka-dev.cloud/api/v1"
+        return "https://hub-api.eka-dev.cloud/api/v1"
     }
 
     public var sseURL: String {

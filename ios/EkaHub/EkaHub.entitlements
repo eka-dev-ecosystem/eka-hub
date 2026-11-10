@@ -4,7 +4,7 @@
 <dict>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)cloud.eka-dev.ekahub</string>
+		<string>$(AppIdentifierPrefix)cloud.eka-dev.eka-hub</string>
 	</array>
 </dict>
 </plist>

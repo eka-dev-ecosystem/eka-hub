@@ -27,3 +27,4 @@ output "api_endpoint" {
   description = "Public API URL endpoint for Eka-Hub backend"
   value       = "https://${var.domain_name}"
 }
+

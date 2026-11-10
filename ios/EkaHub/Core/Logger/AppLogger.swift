@@ -80,7 +80,7 @@ public final class AppLogger: Sendable {
         return formatter
     }()
 
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "cloud.eka-dev.ekahub"
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "cloud.eka-dev.eka-hub"
 
     private init() {}
 
