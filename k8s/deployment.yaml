@@ -24,8 +24,10 @@ spec:
         app.kubernetes.io/name: eka-hub-backend
         app.kubernetes.io/component: backend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
-        - name: backend
+        - name: eka-hub-backend
           image: ghcr.io/exa31/eka-hub-backend:latest
           imagePullPolicy: Always
           ports:
@@ -60,4 +62,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-

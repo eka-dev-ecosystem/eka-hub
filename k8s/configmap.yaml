@@ -6,32 +6,34 @@ metadata:
   labels:
     app.kubernetes.io/name: eka-hub-backend
 data:
-  APP_ENVIRONMENT: "production"
+  APP_NAME: "eka-hub-backend"
+  ENVIRONMENT: "production"
   SERVER_HOST: "0.0.0.0"
   SERVER_PORT: "3000"
   LOG_LEVEL: "info"
 
-  # Feature toggles
-  FEATURE_REDIS: "true"
-  FEATURE_RABBITMQ: "false"
-  FEATURE_REALTIME: "true"
-  FEATURE_REALTIME_SSE: "true"
-  FEATURE_REALTIME_WS: "true"
-  FEATURE_REALTIME_BRIDGE: "redis"
+  # Database settings (Shared Postgres Instance on port 54321)
+  DB_HOST: "103.150.226.122"
+  DB_PORT: "54321"
+  DB_USER: "postgres"
+  DB_NAME: "eka_hub_db"
+  DB_SSLMODE: "disable"
 
-  # Database non-sensitive settings (Shared Postgres Instance)
-  DATABASE_HOST: "postgres.default.svc.cluster.local"
-  DATABASE_PORT: "5432"
-  DATABASE_USER: "postgres"
-  DATABASE_DBNAME: "eka_hub_db"
-  DATABASE_SSLMODE: "disable"
-
-  # Redis non-sensitive settings
-  REDIS_HOST: "redis.default.svc.cluster.local"
+  # Redis settings
+  REDIS_HOST: "103.150.226.122"
   REDIS_PORT: "6379"
   REDIS_DB: "0"
+  REDIS_ENABLED: "true"
 
-  # Satellite App default URLs
-  FTRACKER_API_BASE_URL: "https://f-tracker.eka-dev.cloud"
-  TASK_MANAGEMENT_API_BASE_URL: "https://task-management.eka-dev.cloud"
+  # RabbitMQ disabled for Hub
+  RABBITMQ_ENABLED: "false"
 
+  # Realtime settings
+  REALTIME_ENABLED: "true"
+  REALTIME_SSE_ENABLED: "true"
+  REALTIME_WS_ENABLED: "true"
+  REALTIME_BRIDGE: "redis"
+
+  # Satellite App URLs
+  FTRACKER_API_BASE_URL: "https://be-ftracker.eka-dev.cloud"
+  TASK_MANAGEMENT_API_BASE_URL: "https://be-task-hub.eka-dev.cloud"
