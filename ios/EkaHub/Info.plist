@@ -16,6 +16,8 @@
 	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>GIDClientID</key>
 	<string>897905079551-86q6g4ov6b966r2t7sbmqsmks5bea682.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
