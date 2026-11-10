@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.0...ios-v1.0.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ios:** add CFBundleExecutable and CFBundlePackageType to Info.plist ([c116671](https://github.com/eka-dev-ecosystem/eka-hub/commit/c116671946aa16d60d4db0874a4b032063da2771))
+
 # 1.0.0 (2026-11-10)
 
 
