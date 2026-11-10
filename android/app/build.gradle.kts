@@ -63,13 +63,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val defaultBaseUrl = getEnv("API_BASE_URL", "BASE_URL", defaultVal = "https://be-hub.eka-dev.cloud/api/v1/")
+        val defaultBaseUrl = getEnv("API_BASE_URL", "BASE_URL", defaultVal = "https://hub-api.eka-dev.cloud/api/v1/")
         val defaultSseUrl = getEnv("SSE_URL", defaultVal = "${defaultBaseUrl.trimEnd('/')}/realtime/sse/events")
         val defaultGoogleClientId = getEnv("GOOGLE_CLIENT_ID", "GOOGLE_WEB_CLIENT_ID", defaultVal = "897905079551-86q6g4ov6b966r2t7sbmqsmks5bea682.apps.googleusercontent.com")
 
-        buildConfigField("String", "BASE_URL", "\"\"\"$defaultBaseUrl\"\"\"")
-        buildConfigField("String", "SSE_URL", "\"\"\"$defaultSseUrl\"\"\"")
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"\"$defaultGoogleClientId\"\"\"")
+        buildConfigField("String", "BASE_URL", "\"$defaultBaseUrl\"")
+        buildConfigField("String", "SSE_URL", "\"$defaultSseUrl\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$defaultGoogleClientId\"")
     }
 
     signingConfigs {
@@ -87,10 +87,10 @@ android {
 
     buildTypes {
         debug {
-            val debugBaseUrl = getEnv("DEV_BASE_URL", "API_BASE_URL", defaultVal = "https://be-hub.eka-dev.cloud/api/v1/")
+            val debugBaseUrl = getEnv("DEV_BASE_URL", "API_BASE_URL", defaultVal = "https://hub-api.eka-dev.cloud/api/v1/")
             val debugSseUrl = getEnv("DEV_SSE_URL", "SSE_URL", defaultVal = "${debugBaseUrl.trimEnd('/')}/realtime/sse/events")
-            buildConfigField("String", "BASE_URL", "\"\"\"$debugBaseUrl\"\"\"")
-            buildConfigField("String", "SSE_URL", "\"\"\"$debugSseUrl\"\"\"")
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+            buildConfigField("String", "SSE_URL", "\"$debugSseUrl\"")
         }
         release {
             isMinifyEnabled = false
@@ -103,10 +103,10 @@ android {
                 signingConfig = releaseSigning
             }
 
-            val prodBaseUrl = getEnv("PROD_BASE_URL", "API_BASE_URL", defaultVal = "https://be-hub.eka-dev.cloud/api/v1/")
+            val prodBaseUrl = getEnv("PROD_BASE_URL", "API_BASE_URL", defaultVal = "https://hub-api.eka-dev.cloud/api/v1/")
             val prodSseUrl = getEnv("PROD_SSE_URL", "SSE_URL", defaultVal = "${prodBaseUrl.trimEnd('/')}/realtime/sse/events")
-            buildConfigField("String", "BASE_URL", "\"\"\"$prodBaseUrl\"\"\"")
-            buildConfigField("String", "SSE_URL", "\"\"\"$prodSseUrl\"\"\"")
+            buildConfigField("String", "BASE_URL", "\"$prodBaseUrl\"")
+            buildConfigField("String", "SSE_URL", "\"$prodSseUrl\"")
         }
     }
 
