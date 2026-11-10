@@ -49,3 +49,4 @@ ENV ENVIRONMENT=production
 ENV SERVER_PORT=3000
 
 ENTRYPOINT ["/app/server"]
+

@@ -34,3 +34,4 @@ data:
   # Satellite App default URLs
   FTRACKER_API_BASE_URL: "https://f-tracker.eka-dev.cloud"
   TASK_MANAGEMENT_API_BASE_URL: "https://task-management.eka-dev.cloud"
+

@@ -28,3 +28,4 @@ spec:
                 name: eka-hub-backend
                 port:
                   number: 3000
+
