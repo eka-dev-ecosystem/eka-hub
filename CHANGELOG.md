@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.1...ios-v1.0.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ios:** add AppIcon assets and CFBundleIconName for TestFlight compliance ([d98eb5d](https://github.com/eka-dev-ecosystem/eka-hub/commit/d98eb5da867366fe7cf8fc6c4b206b163fa8ea1b))
+
 ## [1.0.1](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.0...ios-v1.0.1) (2026-11-10)
 
 
