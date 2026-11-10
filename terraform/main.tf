@@ -200,26 +200,23 @@ resource "kubernetes_service" "backend" {
 # 6. Ingress
 resource "kubernetes_ingress_v1" "backend" {
   metadata {
-    name      = "${var.app_name}-ingress"
+    name      = var.app_name
     namespace = kubernetes_namespace.eka_hub.metadata[0].name
     labels = {
       "app.kubernetes.io/name" = var.app_name
     }
     annotations = {
-      "kubernetes.io/ingress.class"                    = "nginx"
-      "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
-      "nginx.ingress.kubernetes.io/proxy-body-size"    = "64m"
-      "nginx.ingress.kubernetes.io/proxy-read-timeout" = "3600"
-      "nginx.ingress.kubernetes.io/proxy-send-timeout" = "3600"
+      "cert-manager.io/cluster-issuer"                   = "letsencrypt"
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web,websecure"
     }
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.domain_name]
-      secret_name = "eka-hub-tls"
+      secret_name = "${var.app_name}-tls"
     }
 
     rule {
@@ -243,3 +240,15 @@ resource "kubernetes_ingress_v1" "backend" {
     }
   }
 }
+
+# 7. Cloudflare DNS Record
+resource "cloudflare_dns_record" "backend" {
+  count   = var.cloudflare_enabled && var.cloudflare_api_token != null ? 1 : 0
+  zone_id = var.cloudflare_zone_id
+  name    = var.domain_name
+  type    = "A"
+  content = var.cloudflare_ip
+  proxied = var.cloudflare_proxied
+  ttl     = 1
+}
+

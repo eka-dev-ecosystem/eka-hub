@@ -140,3 +140,35 @@ variable "task_management_api_base_url" {
   default     = "https://task-management.eka-dev.cloud"
 }
 
+
+# Cloudflare DNS Integration
+variable "cloudflare_enabled" {
+  description = "Enable Cloudflare DNS record management"
+  type        = bool
+  default     = true
+}
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API Token with DNS edit permissions"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID for eka-dev.cloud"
+  type        = string
+  default     = "f971429917c911534d2c179258fe062a"
+}
+
+variable "cloudflare_ip" {
+  description = "Cloudflare A record target IP"
+  type        = string
+  default     = "103.150.226.122"
+}
+
+variable "cloudflare_proxied" {
+  description = "Proxy traffic through Cloudflare CDN"
+  type        = bool
+  default     = true
+}
