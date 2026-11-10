@@ -1,0 +1,75 @@
+name: Deploy iOS (SwiftUI)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ios/**'
+      - '.github/workflows/deploy-ios.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'ios/**'
+      - '.github/workflows/deploy-ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # ==========================================
+  # 1. CI Quality Gate: SPM Simulator Verification
+  # ==========================================
+  test:
+    name: Test & Build iOS (Simulator)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: SPM Build Check
+        run: swift build --package-path . --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios17.0-simulator
+
+  # ==========================================
+  # 2. CD Deployment: Reusable Workflow from exa31/github-workflows
+  # ==========================================
+  deploy:
+    name: Build & Deploy iOS to TestFlight
+    needs: test
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    concurrency:
+      group: release-pipeline-${{ github.repository }}-ios
+      cancel-in-progress: false
+    uses: exa31/github-workflows/.github/workflows/swiftui-ios-multimodule.yml@v1.0.0
+    with:
+      app_name: eka-hub
+      workspace_or_project: ./ios/EkaHub.xcodeproj
+      scheme: EkaHub
+      configuration: Release
+      runs_on: macos-latest
+      enable_semantic_release: true
+      update_project_version: true
+      attach_to_release: true
+      upload_to_testflight: true
+      uses_non_exempt_encryption: false
+      tag_prefix: "ios-"
+    secrets:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_PROVISIONING_PROFILE_WIDGET_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_WIDGET_BASE64 }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}

@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "tagFormat": "ios-v${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "ios/CHANGELOG.md"
+      }
+    ],
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["ios/CHANGELOG.md"],
+        "message": "chore(release): ios-v${nextRelease.version} [skip ci]"
+      }
+    ]
+  ]
+}

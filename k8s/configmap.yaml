@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eka-hub-backend-config
+  namespace: eka-hub
+  labels:
+    app.kubernetes.io/name: eka-hub-backend
+data:
+  APP_ENVIRONMENT: "production"
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "3000"
+  LOG_LEVEL: "info"
+
+  # Feature toggles
+  FEATURE_REDIS: "true"
+  FEATURE_RABBITMQ: "false"
+  FEATURE_REALTIME: "true"
+  FEATURE_REALTIME_SSE: "true"
+  FEATURE_REALTIME_WS: "true"
+  FEATURE_REALTIME_BRIDGE: "redis"
+
+  # Database non-sensitive settings (Shared Postgres Instance)
+  DATABASE_HOST: "postgres.default.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_USER: "postgres"
+  DATABASE_DBNAME: "eka_hub_db"
+  DATABASE_SSLMODE: "disable"
+
+  # Redis non-sensitive settings
+  REDIS_HOST: "redis.default.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # Satellite App default URLs
+  FTRACKER_API_BASE_URL: "https://f-tracker.eka-dev.cloud"
+  TASK_MANAGEMENT_API_BASE_URL: "https://task-management.eka-dev.cloud"

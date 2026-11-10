@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "tagFormat": "android-v${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "android/CHANGELOG.md"
+      }
+    ],
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["android/CHANGELOG.md"],
+        "message": "chore(release): android-v${nextRelease.version} [skip ci]"
+      }
+    ]
+  ]
+}

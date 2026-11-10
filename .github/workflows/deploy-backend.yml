@@ -1,0 +1,81 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # ==========================================
+  # 1. CI Quality Gate: Lint & Unit Tests
+  # ==========================================
+  test:
+    name: Test & Lint Backend (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Verify Dependencies
+        run: go mod verify
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Run Unit Tests
+        run: go test -v -race ./...
+
+  # ==========================================
+  # 2. CD Deployment: Reusable Workflow from exa31/github-workflows
+  # ==========================================
+  deploy:
+    name: Build & Deploy Backend
+    needs: test
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    concurrency:
+      group: release-pipeline-${{ github.repository }}-backend
+      cancel-in-progress: false
+    uses: exa31/github-workflows/.github/workflows/backend.yml@v1.0.0
+    with:
+      app_name: eka-hub-backend
+      namespace: eka-hub
+      image_name: ghcr.io/exa31/eka-hub-backend
+      docker_context: ./backend
+      dockerfile: ./backend/Dockerfile
+      tag_prefix: "backend-"
+      ssh_port: 31080
+      kubeconfig: /home/deploy/.kube/config
+      rollout_timeout: 300s
+      build_args: |
+        ENVIRONMENT=${{ vars.ENVIRONMENT || 'production' }}
+        APP_VERSION=${{ github.sha }}
+      push_latest: true
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}

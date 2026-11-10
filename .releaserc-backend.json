@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "tagFormat": "backend-v${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "backend/CHANGELOG.md"
+      }
+    ],
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["backend/CHANGELOG.md"],
+        "message": "chore(release): backend-v${nextRelease.version} [skip ci]"
+      }
+    ]
+  ]
+}

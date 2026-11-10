@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eka-hub
+  labels:
+    app.kubernetes.io/name: eka-hub
+    app.kubernetes.io/part-of: eka-ecosystem
