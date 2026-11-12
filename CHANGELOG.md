@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.0.0...backend-v1.1.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ios:** add AppIcon assets and CFBundleIconName for TestFlight compliance ([d98eb5d](https://github.com/eka-dev-ecosystem/eka-hub/commit/d98eb5da867366fe7cf8fc6c4b206b163fa8ea1b))
+* **ios:** add CFBundleExecutable and CFBundlePackageType to Info.plist ([c116671](https://github.com/eka-dev-ecosystem/eka-hub/commit/c116671946aa16d60d4db0874a4b032063da2771))
+
+
+### Features
+
+* **hub:** add real OAuth (Apple/Google/Email), live API wiring & Gemini-style iOS UI ([b9df900](https://github.com/eka-dev-ecosystem/eka-hub/commit/b9df900f424bb402ce28183528d8fae9dcc564f9))
+* **k8s:** update manifests to match production cluster architecture ([288cfbc](https://github.com/eka-dev-ecosystem/eka-hub/commit/288cfbc6ac70e1c5de8dd5dd249d5fbea9aea6eb))
+* **terraform:** integrate cloudflare dns provider and traefik ingress ([16d4325](https://github.com/eka-dev-ecosystem/eka-hub/commit/16d432545105456d8bb519a698fec00c79787a89))
+
 ## [1.0.2](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.1...ios-v1.0.2) (2026-11-10)
 
 
