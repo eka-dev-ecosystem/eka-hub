@@ -78,7 +78,7 @@ public struct AuthView: View {
                                         )
                                     )
 
-                                Text("Asisten Gemini personal yang terintegrasi langsung dengan F-Tracker & Task Management.")
+                                Text("Asisten AI personal yang terintegrasi langsung dengan F-Tracker & Task Management.")
                                     .font(.system(size: 14))
                                     .foregroundColor(AppColors.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -90,7 +90,7 @@ public struct AuthView: View {
                         VStack(spacing: 12) {
                             AuthFeatureRow(
                                 icon: "sparkles",
-                                title: "Gemini AI Orchestrator",
+                                title: "Personal AI Orchestrator",
                                 desc: "Tanya, catat transaksi, atau buat tugas lewat satu chat.",
                                 color: AppColors.geminiBlue
                             )

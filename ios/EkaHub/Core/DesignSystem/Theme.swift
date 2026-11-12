@@ -6,16 +6,22 @@ public enum AppColors {
     public static let surfaceElevated = Color(red: 0.067, green: 0.090, blue: 0.165)     // #11172A
     public static let surfaceCard = Color(red: 0.086, green: 0.114, blue: 0.200)         // #161D33
 
-    // Accent & Gemini Aurora Spectrum
-    public static let geminiBlue = Color(red: 0.259, green: 0.522, blue: 0.957)          // #4285F4
-    public static let geminiPurple = Color(red: 0.608, green: 0.447, blue: 0.969)        // #9B72F7
-    public static let geminiCyan = Color(red: 0.133, green: 0.827, blue: 0.933)          // #22D3EE
-    public static let geminiRose = Color(red: 0.851, green: 0.396, blue: 0.439)          // #D96570
+    // Accent & Modern AI Aurora Spectrum
+    public static let aiBlue = Color(red: 0.259, green: 0.522, blue: 0.957)          // #4285F4
+    public static let aiPurple = Color(red: 0.608, green: 0.447, blue: 0.969)        // #9B72F7
+    public static let aiCyan = Color(red: 0.133, green: 0.827, blue: 0.933)          // #22D3EE
+    public static let aiRose = Color(red: 0.851, green: 0.396, blue: 0.439)          // #D96570
 
-    public static let primary = geminiBlue
-    public static let accentBlue = geminiBlue
-    public static let accentCyan = geminiCyan
-    public static let accentPurple = geminiPurple
+    // Backward compatibility aliases
+    public static let geminiBlue = aiBlue
+    public static let geminiPurple = aiPurple
+    public static let geminiCyan = aiCyan
+    public static let geminiRose = aiRose
+
+    public static let primary = aiBlue
+    public static let accentBlue = aiBlue
+    public static let accentCyan = aiCyan
+    public static let accentPurple = aiPurple
     public static let accentEmerald = Color(red: 0.063, green: 0.725, blue: 0.506)       // #10B981
     public static let accentAmber = Color(red: 0.961, green: 0.620, blue: 0.043)         // #F59E0B
     public static let accentRose = Color(red: 0.957, green: 0.247, blue: 0.369)          // #F43F5E
@@ -25,13 +31,15 @@ public enum AppColors {
     public static let textMuted = Color(red: 0.420, green: 0.475, blue: 0.600)           // #6B7999
     public static let borderSubtle = Color.white.opacity(0.11)
 
-    public static var geminiGradient: LinearGradient {
+    public static var aiGradient: LinearGradient {
         LinearGradient(
-            colors: [geminiBlue, geminiPurple, geminiRose],
+            colors: [aiBlue, aiPurple, aiRose],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
+
+    public static var geminiGradient: LinearGradient { aiGradient }
 
     public static var auroraButtonGradient: LinearGradient {
         LinearGradient(

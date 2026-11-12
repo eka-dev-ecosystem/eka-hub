@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct GeminiBackgroundView: View {
+public struct HubBackgroundView: View {
     public init() {}
 
     public var body: some View {
@@ -8,11 +8,11 @@ public struct GeminiBackgroundView: View {
             AppColors.backgroundBase
                 .ignoresSafeArea()
 
-            // Top ambient Gemini aurora orb
+            // Top ambient AI aurora orb
             RadialGradient(
                 gradient: Gradient(colors: [
-                    AppColors.geminiBlue.opacity(0.22),
-                    AppColors.geminiPurple.opacity(0.14),
+                    AppColors.aiBlue.opacity(0.22),
+                    AppColors.aiPurple.opacity(0.14),
                     Color.clear
                 ]),
                 center: UnitPoint(x: 0.2, y: 0.0),
@@ -24,7 +24,7 @@ public struct GeminiBackgroundView: View {
             // Secondary cyan glow right
             RadialGradient(
                 gradient: Gradient(colors: [
-                    AppColors.geminiCyan.opacity(0.12),
+                    AppColors.aiCyan.opacity(0.12),
                     Color.clear
                 ]),
                 center: UnitPoint(x: 0.9, y: 0.15),
@@ -36,7 +36,7 @@ public struct GeminiBackgroundView: View {
             // Bottom subtle violet depth
             RadialGradient(
                 gradient: Gradient(colors: [
-                    AppColors.geminiPurple.opacity(0.10),
+                    AppColors.aiPurple.opacity(0.10),
                     Color.clear
                 ]),
                 center: UnitPoint(x: 0.5, y: 1.0),
@@ -47,8 +47,9 @@ public struct GeminiBackgroundView: View {
         }
     }
 }
+public typealias GeminiBackgroundView = HubBackgroundView
 
-public struct GeminiSparkleView: View {
+public struct HubSparkleView: View {
     public let size: CGFloat
     public let animate: Bool
     @State private var isGlowing = false
@@ -61,14 +62,14 @@ public struct GeminiSparkleView: View {
     public var body: some View {
         ZStack {
             Circle()
-                .fill(AppColors.geminiGradient)
+                .fill(AppColors.aiGradient)
                 .frame(width: size * 1.45, height: size * 1.45)
                 .blur(radius: size * 0.45)
                 .opacity(animate ? (isGlowing ? 0.55 : 0.25) : 0.35)
 
             Image(systemName: "sparkles")
                 .font(.system(size: size, weight: .semibold))
-                .foregroundStyle(AppColors.geminiGradient)
+                .foregroundStyle(AppColors.aiGradient)
                 .scaleEffect(animate && isGlowing ? 1.08 : 1.0)
         }
         .onAppear {
@@ -80,6 +81,7 @@ public struct GeminiSparkleView: View {
         }
     }
 }
+public typealias GeminiSparkleView = HubSparkleView
 
 public struct GlassCardModifier: ViewModifier {
     public var cornerRadius: CGFloat
@@ -215,7 +217,7 @@ public struct GradientAiBannerView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(AppColors.geminiGradient)
                 Spacer()
-                Text("Gemini")
+                Text("AI Hub")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(AppColors.geminiCyan)
                     .padding(.horizontal, 8)
@@ -233,7 +235,7 @@ public struct GradientAiBannerView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "wand.and.stars")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Diskusikan dengan Gemini AI")
+                    Text("Tanyakan ke Asisten AI")
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
                     Image(systemName: "chevron.right")

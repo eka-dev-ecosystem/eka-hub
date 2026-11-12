@@ -106,7 +106,7 @@ public struct ConnectedAppsView: View {
                             .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundColor(AppColors.textPrimary)
 
-                        Text("Hubungkan aplikasi Eka-Dev lain dengan satu handshake aman agar Gemini bisa membaca konteks & menjalankan aksi langsung.")
+                        Text("Hubungkan aplikasi satelit dengan handshake aman agar Asisten AI bisa membaca konteks & menjalankan aksi langsung.")
                             .font(.system(size: 13))
                             .foregroundColor(AppColors.textSecondary)
                             .padding(.top, 2)

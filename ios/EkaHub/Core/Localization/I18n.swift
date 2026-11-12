@@ -54,13 +54,13 @@ public final class I18n {
     }
 
     private let translations: [String: [String: String]] = [
-        "nav.chat": ["en": "Gemini", "id": "Gemini AI"],
+        "nav.chat": ["en": "AI Chat", "id": "AI Chat"],
         "nav.dashboard": ["en": "Briefing", "id": "Briefing"],
         "nav.apps": ["en": "Satellites", "id": "Satelit"],
         "nav.profile": ["en": "Profile", "id": "Profil"],
         "briefing.title": ["en": "Daily AI Briefing", "id": "Daily AI Briefing"],
         "satellites.title": ["en": "Connected Satellites", "id": "Aplikasi Satelit"],
-        "chat.placeholder": ["en": "Ask Gemini, finances, or tasks...", "id": "Tanya Gemini, keuangan, atau tugas..."],
+        "chat.placeholder": ["en": "Ask anything, finances, or tasks...", "id": "Tanya apa saja, keuangan, atau tugas..."],
         "auth.signin": ["en": "Sign In", "id": "Masuk"],
         "auth.signout": ["en": "Sign Out", "id": "Keluar"],
         "auth.google": ["en": "Continue with Google", "id": "Lanjutkan dengan Google"],

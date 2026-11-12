@@ -173,7 +173,7 @@ public struct ProfileView: View {
             }
             Button("Batal", role: .cancel) {}
         } message: {
-            Text("Anda perlu masuk lagi untuk mengakses asisten Gemini dan satelit terhubung.")
+            Text("Anda perlu masuk lagi untuk mengakses asisten AI dan satelit terhubung.")
         }
     }
 

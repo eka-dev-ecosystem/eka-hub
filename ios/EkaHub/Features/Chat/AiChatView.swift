@@ -112,7 +112,7 @@ public struct AiChatView: View {
                             .font(.system(size: 17, weight: .bold, design: .rounded))
                             .foregroundColor(AppColors.textPrimary)
 
-                        Text("Gemini")
+                        Text("AI")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(AppColors.geminiGradient)
                             .padding(.horizontal, 7)
@@ -311,7 +311,7 @@ public struct AiChatView: View {
                 .frame(width: 30, height: 30)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Gemini sedang berpikir...")
+                Text("Sedang berpikir...")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AppColors.geminiGradient)
 
