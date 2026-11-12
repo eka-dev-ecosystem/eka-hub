@@ -45,8 +45,17 @@ public final class KeychainManager: @unchecked Sendable {
     }
 
     public func clearAll() {
-        delete(for: "access_token")
-        delete(for: "refresh_token")
-        delete(for: "user_id")
+        let keys = [
+            "access_token",
+            "refresh_token",
+            "user_id",
+            "user_name",
+            "user_email",
+            "user_avatar",
+            "auth_provider"
+        ]
+        for key in keys {
+            delete(for: key)
+        }
     }
 }

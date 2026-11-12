@@ -26,6 +26,7 @@ type Config struct {
 	Redis    RedisConfig
 	RabbitMQ RabbitMQConfig
 	JWT      JWTConfig
+	OAuth    OAuthConfig
 }
 
 // AppConfig holds generic application metadata.
@@ -111,6 +112,14 @@ type JWTConfig struct {
 	Issuer               string
 }
 
+type OAuthConfig struct {
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURI  string
+	AppleClientID      string
+	AppleBundleID      string
+}
+
 func Load() *Config {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -165,6 +174,13 @@ func Load() *Config {
 			AccessTokenDuration:  getEnvAsInt("JWT_ACCESS_DURATION", 15),   // 15 minutes
 			RefreshTokenDuration: getEnvAsInt("JWT_REFRESH_DURATION", 168), // 7 days (168 hours)
 			Issuer:               getEnv("JWT_ISSUER", "my-api"),
+		},
+		OAuth: OAuthConfig{
+			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", "897905079551-86q6g4ov6b966r2t7sbmqsmks5bea682.apps.googleusercontent.com"),
+			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "postmessage"),
+			AppleClientID:      getEnv("APPLE_CLIENT_ID", ""),
+			AppleBundleID:      getEnv("APPLE_BUNDLE_ID", "cloud.eka-dev.eka-hub"),
 		},
 	}
 

@@ -11,11 +11,18 @@ import (
 	"syscall"
 	"time"
 
+	"golang/database/migrate"
 	"golang/internal/app"
 )
 
 func main() {
 	container, shutdown := app.Boot()
+
+	if _, statErr := os.Stat("./migrations"); statErr == nil {
+		if err := migrate.RunMigrations(&container.Config.Database, "./migrations"); err != nil {
+			container.Logger.Warn("startup auto-migration skipped or failed", "error", err.Error())
+		}
+	}
 
 	httpApp := app.NewHTTP(container)
 	errCh := make(chan error, 1)

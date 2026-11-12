@@ -55,6 +55,24 @@ func (h *AuthHandler) Login() fiber.Handler {
 	}
 }
 
+// OAuthLogin handles POST /api/v1/auth/oauth (Google & Apple sign-in).
+func (h *AuthHandler) OAuthLogin() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var req OAuthLoginRequest
+		if err := validation.Default.BindAndValidate(c, &req); err != nil {
+			return err
+		}
+
+		res, err := h.service.OAuthLogin(c.UserContext(), &req)
+		if err != nil {
+			return err
+		}
+
+		logging.LoggerFromFiber(c).Info("oauth user logged in", "user_id", res.User.ID, "provider", req.Provider)
+		return response.SuccessResponse(c, res, "OAuth login successful")
+	}
+}
+
 // RefreshToken handles POST /api/v1/auth/refresh.
 func (h *AuthHandler) RefreshToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {

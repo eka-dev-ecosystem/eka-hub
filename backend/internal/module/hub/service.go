@@ -159,7 +159,7 @@ func (s *hubService) UnlinkApp(ctx context.Context, userID, appID string) error 
 }
 
 func (s *hubService) fetchAndPersistAppSummary(ctx context.Context, app *LinkedApp) (*AppSummaryResponse, error) {
-	// Call external satellite app endpoint: GET {api_base_url}/summary or /api/v1/hub/summary
+	// Call external satellite app endpoint: GET {api_base_url}/api/v1/hub/summary
 	summaryURL := fmt.Sprintf("%s/api/v1/hub/summary", strings.TrimRight(app.APIBaseURL, "/"))
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, summaryURL, nil)
 	if err == nil {
@@ -168,26 +168,40 @@ func (s *hubService) fetchAndPersistAppSummary(ctx context.Context, app *LinkedA
 		httpReq.Header.Set("Accept", "application/json")
 
 		resp, err := s.httpClient.Do(httpReq)
-		if err == nil && resp.StatusCode == http.StatusOK {
+		if err == nil {
 			defer resp.Body.Close()
-			var summary AppSummaryResponse
-			if err := json.NewDecoder(resp.Body).Decode(&summary); err == nil {
-				aiDataBytes, _ := json.Marshal(summary.AIContextData)
-				_ = s.repo.UpdateLinkedAppSummary(
-					ctx,
-					app.HubUserID,
-					app.AppID,
-					summary.HighlightMetric,
-					summary.HighlightLabel,
-					string(aiDataBytes),
-					time.Now(),
-				)
-				return &summary, nil
+			if resp.StatusCode == http.StatusOK {
+				bodyBytes, readErr := io.ReadAll(resp.Body)
+				if readErr == nil {
+					var envelope struct {
+						Data *AppSummaryResponse `json:"data"`
+					}
+					var summary AppSummaryResponse
+					if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil && envelope.Data.AppID != "" {
+						summary = *envelope.Data
+					} else {
+						_ = json.Unmarshal(bodyBytes, &summary)
+					}
+
+					if summary.AppID != "" {
+						aiDataBytes, _ := json.Marshal(summary.AIContextData)
+						_ = s.repo.UpdateLinkedAppSummary(
+							ctx,
+							app.HubUserID,
+							app.AppID,
+							summary.HighlightMetric,
+							summary.HighlightLabel,
+							string(aiDataBytes),
+							time.Now(),
+						)
+						return &summary, nil
+					}
+				}
 			}
 		}
 	}
 
-	// Fallback to cached or structured synthetic values for demo/offline resilience
+	// Fallback to cached summary stored in database (avoiding synthetic fake numbers)
 	var aiMap map[string]interface{}
 	if app.AIContextData != "" && app.AIContextData != "{}" {
 		_ = json.Unmarshal([]byte(app.AIContextData), &aiMap)
@@ -195,32 +209,13 @@ func (s *hubService) fetchAndPersistAppSummary(ctx context.Context, app *LinkedA
 
 	metric := app.HighlightMetric
 	label := app.HighlightLabel
-	deepLink := fmt.Sprintf("%sdashboard?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
-
 	if metric == "" {
-		if strings.Contains(strings.ToLower(app.AppID), "tracker") {
-			metric = "Rp 3.850.000"
-			label = "Pengeluaran Bulan Ini"
-			deepLink = fmt.Sprintf("%sexpenses?category=all&expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
-			aiMap = map[string]interface{}{
-				"monthly_spent":      3850000,
-				"budget_limit":       8000000,
-				"remaining_budget":   4150000,
-				"top_category":       "Food & Groceries",
-				"overbudget_warning": false,
-			}
-		} else {
-			metric = "4 Tugas Pending"
-			label = "Tugas Aktif Hari Ini"
-			deepLink = fmt.Sprintf("%stasks?filter=today&expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
-			aiMap = map[string]interface{}{
-				"pending_count":      4,
-				"due_today":          2,
-				"overdue":            1,
-				"high_priority_task": "Review PR Eka Hub DeepLinkGuard",
-			}
-		}
+		metric = "Terhubung"
 	}
+	if label == "" {
+		label = "Menunggu Sinkronisasi Data"
+	}
+	deepLink := fmt.Sprintf("%sdashboard?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
 
 	return &AppSummaryResponse{
 		AppID:           app.AppID,
@@ -620,12 +615,19 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 	if baseURL == "" {
 		baseURL = "https://generativelanguage.googleapis.com"
 	}
-	url := fmt.Sprintf("%s/v1beta/models/gemini-1.5-flash:generateContent?key=%s", strings.TrimRight(baseURL, "/"), apiKey)
+	model := os.Getenv("GEMINI_MODEL")
+	if model == "" {
+		model = "gemini-2.5-flash"
+	}
+	url := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", strings.TrimRight(baseURL, "/"), model, apiKey)
 
-	systemPrompt := "You are Personal AI Hub Assistant. You help users aggregate and orchestrate their life data (F-Tracker for finances, Task Management for daily tasks). Always provide direct, helpful answers and call appropriate tools (create_task, create_transaction, list_tasks, get_financial_summary) when requested by the user."
+	linkedContext := "Belum ada aplikasi satelit (F-Tracker atau Task Management) yang terhubung."
+	if len(summaries) > 0 {
+		summariesJSON, _ := json.Marshal(summaries)
+		linkedContext = string(summariesJSON)
+	}
 
-	summariesJSON, _ := json.Marshal(summaries)
-	contextInfo := fmt.Sprintf("\nCurrent Linked Apps Data: %s", string(summariesJSON))
+	systemPrompt := "You are Eka-Hub AI (Personal AI Hub Assistant powered by Gemini). You help users both as a smart, concise everyday AI assistant AND by orchestrating their connected apps (F-Tracker for finances/transactions and Task Management for tasks/todos). Respond in the user's language (Indonesian by default if the prompt is Indonesian, otherwise English) using clean, readable Markdown. When the user asks to record an expense, check budget, create a task, or list tasks, use the provided function tools; if the target satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.\n\nConnected Apps Live Context: " + linkedContext
 
 	tools := GetHubGeminiTools()
 
@@ -634,14 +636,21 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		{
 			"role": "user",
 			"parts": []map[string]interface{}{
-				{"text": systemPrompt + contextInfo + "\nUser Question: " + userPrompt},
+				{"text": userPrompt},
 			},
 		},
 	}
 
+	systemInstruction := map[string]interface{}{
+		"parts": []map[string]interface{}{
+			{"text": systemPrompt},
+		},
+	}
+
 	payload := map[string]interface{}{
-		"contents": contents,
-		"tools":    []interface{}{tools},
+		"systemInstruction": systemInstruction,
+		"contents":          contents,
+		"tools":             []interface{}{tools},
 	}
 
 	bodyBytes, _ := json.Marshal(payload)
@@ -740,7 +749,8 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		)
 
 		turn2Payload := map[string]interface{}{
-			"contents": turn2Contents,
+			"systemInstruction": systemInstruction,
+			"contents":          turn2Contents,
 		}
 		turn2Bytes, _ := json.Marshal(turn2Payload)
 		req2, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(turn2Bytes))

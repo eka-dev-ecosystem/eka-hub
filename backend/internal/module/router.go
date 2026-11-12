@@ -42,11 +42,12 @@ func (r *Router) Register(api fiber.Router) {
 }
 
 func (r *Router) registerAuth(api fiber.Router) {
-	handler := authmodule.NewAuthHandler(authmodule.NewAuthService(r.DB, r.JWTService))
+	handler := authmodule.NewAuthHandler(authmodule.NewAuthService(r.DB, r.JWTService, r.Config))
 
 	auth := api.Group("/auth")
 	auth.Post("/register", handler.Register())
 	auth.Post("/login", handler.Login())
+	auth.Post("/oauth", handler.OAuthLogin())
 	auth.Post("/refresh", handler.RefreshToken())
 
 	auth.Use(authMiddleware.AuthMiddleware(r.JWTService))

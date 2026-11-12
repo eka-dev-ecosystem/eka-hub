@@ -1,62 +1,74 @@
+import Foundation
 import SwiftUI
 
 @MainActor
 @Observable
 public final class AiChatViewModel {
-    public var messages: [ChatMessageItem] = [
-        ChatMessageItem(
-            role: "assistant",
-            content: "Halo! Saya Personal AI Hub Anda. Ada yang ingin Anda tanyakan seputar keuangan F-Tracker atau agenda tugas Task Management?",
-            actions: [
-                SuggestedAction(title: "Lihat F-Tracker", deepLink: "ftracker://expenses?expected_uid=usr_ftracker_123"),
-                SuggestedAction(title: "Buka Task Hari Ini", deepLink: "taskhub://tasks?expected_uid=usr_task_456")
-            ]
-        )
-    ]
+    public var messages: [ChatMessageItem] = []
+    public var inputText: String = ""
+    public var isSending: Bool = false
+    public var linkedApps: [LinkedAppItem] = []
+    public var errorBanner: String?
 
-    public init() {}
+    private let apiClient = APIClient.shared
 
-    public func sendMessage(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return }
-
-        messages.append(ChatMessageItem(role: "user", content: trimmed))
-
-        let lower = trimmed.lowercased()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            if lower.contains("uang") || lower.contains("pengeluaran") || lower.contains("budget") {
-                self.messages.append(
-                    ChatMessageItem(
-                        role: "assistant",
-                        content: "Pengeluaran F-Tracker tercatat Rp 4.250.000. Sisa budget bulan ini Rp 5.750.000.",
-                        actions: [
-                            SuggestedAction(title: "Detail F-Tracker", deepLink: "ftracker://expenses?category=food&expected_uid=usr_ftracker_123")
-                        ]
-                    )
-                )
-            } else if lower.contains("tugas") || lower.contains("task") {
-                self.messages.append(
-                    ChatMessageItem(
-                        role: "assistant",
-                        content: "Anda memiliki 5 tugas pending di Task Management. 2 deadline jatuh hari ini.",
-                        actions: [
-                            SuggestedAction(title: "Buka Task Hub", deepLink: "taskhub://tasks?filter=today&expected_uid=usr_task_456")
-                        ]
-                    )
-                )
-            } else {
-                self.messages.append(
-                    ChatMessageItem(
-                        role: "assistant",
-                        content: "Finansial dan tugas Anda tersinkronisasi. Mau saya buka aplikasi yang mana?",
-                        actions: [
-                            SuggestedAction(title: "F-Tracker", deepLink: "ftracker://dashboard?expected_uid=usr_ftracker_123"),
-                            SuggestedAction(title: "Task Management", deepLink: "taskhub://dashboard?expected_uid=usr_task_456")
-                        ]
-                    )
-                )
-            }
+    public init() {
+        Task {
+            await loadLinkedApps()
         }
+    }
+
+    public func loadLinkedApps() async {
+        do {
+            linkedApps = try await apiClient.fetchLinkedApps()
+        } catch {
+            AppLogger.warn("Failed to load linked apps for chat header", category: .hub, metadata: ["error": error.localizedDescription])
+        }
+    }
+
+    public func sendMessage() async {
+        let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty, !isSending else { return }
+        inputText = ""
+        await submitPrompt(prompt)
+    }
+
+    public func sendQuickPrompt(_ prompt: String) async {
+        guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !isSending else { return }
+        await submitPrompt(prompt)
+    }
+
+    public func startNewChat() {
+        guard !isSending else { return }
+        messages.removeAll()
+        errorBanner = nil
+    }
+
+    private func submitPrompt(_ prompt: String) async {
+        errorBanner = nil
+        let userMsg = ChatMessageItem(role: .user, content: prompt)
+        messages.append(userMsg)
+        isSending = true
+
+        do {
+            let response = try await apiClient.sendChat(message: prompt)
+            let aiMsg = ChatMessageItem(
+                role: .assistant,
+                content: response.reply,
+                toolCalls: response.toolCalls,
+                actionLinks: response.actionLinks
+            )
+            messages.append(aiMsg)
+            await loadLinkedApps()
+        } catch {
+            errorBanner = error.localizedDescription
+            let fallbackMsg = ChatMessageItem(
+                role: .assistant,
+                content: "Maaf, permintaan belum berhasil diproses: \(error.localizedDescription)"
+            )
+            messages.append(fallbackMsg)
+        }
+
+        isSending = false
     }
 }

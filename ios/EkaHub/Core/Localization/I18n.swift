@@ -11,9 +11,18 @@ public enum AppLanguage: String, CaseIterable, Sendable {
         case .id: return "Bahasa Indonesia"
         }
     }
+
+    public var flag: String {
+        switch self {
+        case .en: return "🇺🇸"
+        case .id: return "🇮🇩"
+        }
+    }
 }
 
-public final class I18n: @unchecked Sendable {
+@MainActor
+@Observable
+public final class I18n {
     public static let shared = I18n()
 
     private let userDefaultsKey = "selected_app_language"
@@ -33,6 +42,10 @@ public final class I18n: @unchecked Sendable {
         UserDefaults.standard.set(language.rawValue, forKey: userDefaultsKey)
     }
 
+    public func toggleLanguage() {
+        setLanguage(currentLanguage == .id ? .en : .id)
+    }
+
     public func localizedString(for key: String) -> String {
         if let dict = translations[key], let val = dict[currentLanguage.rawValue] {
             return val
@@ -41,20 +54,23 @@ public final class I18n: @unchecked Sendable {
     }
 
     private let translations: [String: [String: String]] = [
-        "nav.dashboard": ["en": "Dashboard", "id": "Dasbor"],
-        "nav.chat": ["en": "AI Assistant", "id": "Asisten AI"],
+        "nav.chat": ["en": "Gemini", "id": "Gemini AI"],
+        "nav.dashboard": ["en": "Briefing", "id": "Briefing"],
         "nav.apps": ["en": "Satellites", "id": "Satelit"],
         "nav.profile": ["en": "Profile", "id": "Profil"],
         "briefing.title": ["en": "Daily AI Briefing", "id": "Daily AI Briefing"],
-        "satellites.title": ["en": "Connected Satellites", "id": "Aplikasi Satelit Terhubung"],
-        "chat.placeholder": ["en": "Ask about finances or tasks...", "id": "Tanyakan pengeluaran atau tugas..."],
+        "satellites.title": ["en": "Connected Satellites", "id": "Aplikasi Satelit"],
+        "chat.placeholder": ["en": "Ask Gemini, finances, or tasks...", "id": "Tanya Gemini, keuangan, atau tugas..."],
         "auth.signin": ["en": "Sign In", "id": "Masuk"],
         "auth.signout": ["en": "Sign Out", "id": "Keluar"],
+        "auth.google": ["en": "Continue with Google", "id": "Lanjutkan dengan Google"],
+        "auth.email_option": ["en": "Use Email & Password", "id": "Gunakan Email & Password"],
         "mismatch.title": ["en": "Account Mismatch", "id": "Akun Tidak Sesuai"]
     ]
 }
 
 public extension String {
+    @MainActor
     var localized: String {
         I18n.shared.localizedString(for: self)
     }

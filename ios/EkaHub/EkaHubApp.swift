@@ -1,7 +1,9 @@
 import SwiftUI
+import GoogleSignIn
 
 #if canImport(UIKit)
 import UIKit
+
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
@@ -17,9 +19,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        Task { @MainActor in
-            PushNotificationManager.shared.handleDeviceTokenData(deviceToken)
-        }
+        AppLogger.info("APNs registered", category: .app)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        AppLogger.warn("APNs registration skipped or failed", category: .app, metadata: ["error": error.localizedDescription])
     }
 }
 #endif
@@ -29,22 +36,26 @@ struct EkaHubApp: App {
     #if canImport(UIKit)
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     #endif
-
     @State private var authViewModel = AuthViewModel()
 
     var body: some Scene {
         WindowGroup {
             Group {
                 if authViewModel.isAuthenticated {
-                    MainTabView()
+                    MainTabView(authViewModel: authViewModel)
                 } else {
-                    AuthView(onAuthSuccess: {
-                        authViewModel.isAuthenticated = true
-                    })
+                    AuthView(viewModel: authViewModel)
                 }
             }
             .preferredColorScheme(.dark)
             .environment(\.locale, Locale(identifier: I18n.shared.currentLanguage.rawValue))
+            .onOpenURL { url in
+                #if canImport(UIKit)
+                if url.scheme != "ekahub" {
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
+                #endif
+            }
         }
     }
 }
