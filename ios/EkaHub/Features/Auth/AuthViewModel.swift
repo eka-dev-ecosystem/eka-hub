@@ -127,7 +127,7 @@ public final class AuthViewModel {
                 case .canceled:
                     break
                 case .unknown:
-                    errorMessage = "Sign in with Apple memerlukan capability aktif di Provisioning Profile. Gunakan Google Sign-In atau Email untuk masuk."
+                    errorMessage = "Sign in with Apple tidak tersedia saat ini. Pastikan Apple ID aktif di Pengaturan perangkat atau gunakan Google/Email."
                 default:
                     errorMessage = authErr.localizedDescription
                 }
