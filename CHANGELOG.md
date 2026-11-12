@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.2...ios-v1.1.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ios:** use dynamic MARKETING_VERSION and CURRENT_PROJECT_VERSION in Info.plist ([f22ea9d](https://github.com/eka-dev-ecosystem/eka-hub/commit/f22ea9d3b18ff027b62869bf74ba313c840772fb))
+
+
+### Features
+
+* **hub:** add real OAuth (Apple/Google/Email), live API wiring & Gemini-style iOS UI ([b9df900](https://github.com/eka-dev-ecosystem/eka-hub/commit/b9df900f424bb402ce28183528d8fae9dcc564f9))
+
 # [1.1.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.0.0...backend-v1.1.0) (2026-11-12)
 
 
