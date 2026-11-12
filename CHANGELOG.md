@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.1.0...ios-v1.2.0) (2026-11-12)
+
+
+### Features
+
+* **ios:** enable Sign in with Apple entitlement and updated error fallback ([dfdfb6a](https://github.com/eka-dev-ecosystem/eka-hub/commit/dfdfb6a5b4c306b46f9e7216aa4383b015e39d89))
+
 # [1.1.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.0.2...ios-v1.1.0) (2026-11-12)
 
 
