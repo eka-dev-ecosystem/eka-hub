@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.1.0...backend-v1.2.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ios:** use dynamic MARKETING_VERSION and CURRENT_PROJECT_VERSION in Info.plist ([f22ea9d](https://github.com/eka-dev-ecosystem/eka-hub/commit/f22ea9d3b18ff027b62869bf74ba313c840772fb))
+
+
+### Features
+
+* **hub:** decouple branding from specific AI providers to neutral Eka-Hub AI ([c19cada](https://github.com/eka-dev-ecosystem/eka-hub/commit/c19cada41a652514ba49717cd6a3006bce0732a7))
+* **ios:** enable Sign in with Apple entitlement and updated error fallback ([dfdfb6a](https://github.com/eka-dev-ecosystem/eka-hub/commit/dfdfb6a5b4c306b46f9e7216aa4383b015e39d89))
+
 # [1.2.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.1.0...ios-v1.2.0) (2026-11-12)
 
 
