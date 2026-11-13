@@ -306,23 +306,7 @@ public struct AiChatView: View {
     // MARK: - Thinking Indicator
 
     private var geminiThinkingRow: some View {
-        HStack(alignment: .top, spacing: 12) {
-            GeminiSparkleView(size: 20, animate: true)
-                .frame(width: 30, height: 30)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Sedang berpikir...")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(AppColors.geminiGradient)
-
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.geminiGradient.opacity(0.28))
-                    .frame(width: 140, height: 6)
-            }
-            .padding(.top, 4)
-
-            Spacer()
-        }
+        ThinkingIndicatorView()
     }
 
     // MARK: - Composer Input Bar
@@ -497,6 +481,114 @@ private struct GeminiMessageRow: View {
                 }
 
                 Spacer(minLength: 12)
+            }
+        }
+    }
+}
+
+public struct ThinkingIndicatorView: View {
+    @State private var dot1Offset: CGFloat = 0
+    @State private var dot2Offset: CGFloat = 0
+    @State private var dot3Offset: CGFloat = 0
+    @State private var shimmerOffset: CGFloat = -1.0
+
+    public init() {}
+
+    public var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.aiGradient)
+                    .frame(width: 32, height: 32)
+                    .blur(radius: 8)
+                    .opacity(0.3)
+
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(AppColors.surfaceElevated)
+                    .frame(width: 30, height: 30)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(AppColors.aiGradient, lineWidth: 1)
+                    )
+
+                HubSparkleView(size: 16, animate: true)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text("Sedang berpikir & menganalisis data...")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, AppColors.textSecondary],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+
+                    // 3 Animated Bouncing Dots
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(AppColors.aiCyan)
+                            .frame(width: 5, height: 5)
+                            .offset(y: dot1Offset)
+
+                        Circle()
+                            .fill(AppColors.aiPurple)
+                            .frame(width: 5, height: 5)
+                            .offset(y: dot2Offset)
+
+                        Circle()
+                            .fill(AppColors.aiRose)
+                            .frame(width: 5, height: 5)
+                            .offset(y: dot3Offset)
+                    }
+                }
+
+                // Fluid Shimmer Capsule Loader
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(AppColors.surfaceCard.opacity(0.8))
+                        .frame(width: 140, height: 3.5)
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    AppColors.aiCyan,
+                                    AppColors.aiBlue,
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: 48, height: 3.5)
+                        .offset(x: ((shimmerOffset + 1.0) / 2.0) * 92)
+                        .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+                }
+                .clipShape(Capsule())
+            }
+            .padding(.top, 4)
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .glassCard(cornerRadius: 16)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                dot1Offset = -5
+            }
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(0.15)) {
+                dot2Offset = -5
+            }
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(0.3)) {
+                dot3Offset = -5
+            }
+            withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
+                shimmerOffset = 1.0
             }
         }
     }

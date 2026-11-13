@@ -69,7 +69,7 @@ func GetHubGeminiTools() GeminiTool {
 						},
 						"is_focus": map[string]interface{}{
 							"type":        "BOOLEAN",
-							"description": "Filter by pinned Today's Focus tasks.",
+							"description": "Filter by pinned Today's Focus tasks (true for today's priority tasks).",
 						},
 						"search": map[string]interface{}{
 							"type":        "STRING",
@@ -143,6 +143,10 @@ func GetHubGeminiTools() GeminiTool {
 						"category": map[string]interface{}{
 							"type":        "STRING",
 							"description": "Filter by category.",
+						},
+						"date": map[string]interface{}{
+							"type":        "STRING",
+							"description": "Filter by date: 'today', 'yesterday', or specific date 'YYYY-MM-DD'.",
 						},
 						"limit": map[string]interface{}{
 							"type":        "INTEGER",

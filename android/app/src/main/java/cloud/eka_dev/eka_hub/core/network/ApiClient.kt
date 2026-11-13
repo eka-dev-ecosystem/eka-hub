@@ -20,7 +20,7 @@ interface HubApiService {
     suspend fun getAppSummaries(): BaseResponse<List<AppSummaryResponse>>
 
     @POST("hub/chat")
-    suspend fun sendChatMessage(@Body req: Map<String, String>): BaseResponse<ChatMessage>
+    suspend fun sendChatMessage(@Body req: Map<String, String>): BaseResponse<AIChatResponse>
 
     @POST("hub/link/initiate")
     suspend fun initiateLink(@Body req: Map<String, String>): BaseResponse<Map<String, String>>

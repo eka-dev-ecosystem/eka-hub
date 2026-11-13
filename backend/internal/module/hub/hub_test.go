@@ -501,3 +501,105 @@ func TestProcessAIChat_PureAIFunctionCalling(t *testing.T) {
 		t.Errorf("expected action deep link to be generated")
 	}
 }
+
+func TestProcessAIChat_MultiToolOrchestration(t *testing.T) {
+	repo := newMockHubRepo()
+	service := NewHubService(repo, &mockTransactor{})
+
+	// Setup linked F-Tracker & Task Management apps
+	_ = repo.UpsertLinkedApp(context.Background(), &LinkedApp{
+		AppID:           "ftracker",
+		AppName:         "F-Tracker",
+		HubUserID:       "user-uuid-1",
+		ConnectedUID:    "usr_ftracker_123",
+		CustomURLScheme: "ftracker://",
+		HighlightMetric: "Rp 3.500.000",
+		HighlightLabel:  "Pengeluaran Bulan Ini",
+		IsActive:        true,
+	})
+	_ = repo.UpsertLinkedApp(context.Background(), &LinkedApp{
+		AppID:           "taskmanagement",
+		AppName:         "Task Management",
+		HubUserID:       "user-uuid-1",
+		ConnectedUID:    "usr_task_456",
+		CustomURLScheme: "taskhub://",
+		HighlightMetric: "3 Tugas",
+		HighlightLabel:  "Prioritas Hari Ini",
+		IsActive:        true,
+	})
+
+	turnCounter := 0
+	mockGeminiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		turnCounter++
+		w.Header().Set("Content-Type", "application/json")
+
+		if turnCounter == 1 {
+			// Turn 1: Return PARALLEL function calls for both F-Tracker and Task Management
+			resp := map[string]interface{}{
+				"candidates": []map[string]interface{}{
+					{
+						"content": map[string]interface{}{
+							"role": "model",
+							"parts": []map[string]interface{}{
+								{
+									"functionCall": map[string]interface{}{
+										"name": "get_financial_summary",
+										"args": map[string]interface{}{},
+									},
+								},
+								{
+									"functionCall": map[string]interface{}{
+										"name": "get_tasks_summary",
+										"args": map[string]interface{}{"filter": "today"},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		// Turn 2: Synthesize combined reply
+		resp := map[string]interface{}{
+			"candidates": []map[string]interface{}{
+				{
+					"content": map[string]interface{}{
+						"role": "model",
+						"parts": []map[string]interface{}{
+							{
+								"text": "Ringkasan Finansial & Tugas Hari Ini: Pengeluaran tercatat Rp 3.500.000 dan Anda memiliki 3 tugas prioritas hari ini.",
+							},
+						},
+					},
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockGeminiServer.Close()
+
+	t.Setenv("GEMINI_API_KEY", "test-key-123")
+	t.Setenv("GEMINI_BASE_URL", mockGeminiServer.URL)
+
+	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Berikan ringkasan keuangan dan tugas hari ini")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(chatResp.ToolCalls) != 2 {
+		t.Fatalf("expected 2 tool calls for multi-tool orchestration, got %d", len(chatResp.ToolCalls))
+	}
+
+	names := []string{chatResp.ToolCalls[0].Name, chatResp.ToolCalls[1].Name}
+	if !((names[0] == "get_financial_summary" && names[1] == "get_tasks_summary") ||
+		(names[0] == "get_tasks_summary" && names[1] == "get_financial_summary")) {
+		t.Errorf("unexpected tool call names: %v", names)
+	}
+
+	if !strings.Contains(chatResp.Reply, "Pengeluaran") || !strings.Contains(chatResp.Reply, "tugas") {
+		t.Errorf("expected combined synthesized reply, got: %s", chatResp.Reply)
+	}
+}

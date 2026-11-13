@@ -316,7 +316,7 @@ public struct AIChatResponse: Codable, Sendable {
 public struct ChatMessageItem: Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
-    public let content: String
+    public var content: String
     public let toolCalls: [ToolCallDetail]?
     public let actionLinks: [SuggestedAction]?
     public let timestamp: Date

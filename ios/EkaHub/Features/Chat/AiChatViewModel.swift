@@ -52,15 +52,33 @@ public final class AiChatViewModel {
 
         do {
             let response = try await apiClient.sendChat(message: prompt)
-            let aiMsg = ChatMessageItem(
+            isSending = false
+
+            // Progressive streaming typewriter for live, real-time response feel
+            let streamingMsg = ChatMessageItem(
                 role: .assistant,
-                content: response.reply,
+                content: "",
                 toolCalls: response.toolCalls,
                 actionLinks: response.actionLinks
             )
-            messages.append(aiMsg)
+            messages.append(streamingMsg)
+            let streamingId = streamingMsg.id
+
+            let words = response.reply.split(separator: " ")
+            var accumulated = ""
+            for (idx, word) in words.enumerated() {
+                accumulated += (idx == 0 ? "" : " ") + word
+                if let index = messages.firstIndex(where: { $0.id == streamingId }) {
+                    messages[index].content = accumulated
+                }
+                try? await Task.sleep(nanoseconds: 20_000_000) // 20ms per word
+            }
+            if let index = messages.firstIndex(where: { $0.id == streamingId }) {
+                messages[index].content = response.reply
+            }
             await loadLinkedApps()
         } catch {
+            isSending = false
             errorBanner = error.localizedDescription
             let fallbackMsg = ChatMessageItem(
                 role: .assistant,
@@ -68,7 +86,5 @@ public final class AiChatViewModel {
             )
             messages.append(fallbackMsg)
         }
-
-        isSending = false
     }
 }

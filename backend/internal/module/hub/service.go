@@ -341,7 +341,51 @@ func (s *hubService) ExecuteTool(ctx context.Context, userID string, req *Execut
 	}
 
 	switch req.ToolName {
-	case "create_task", "list_tasks", "update_task_status", "get_tasks_summary":
+	case "get_tasks_summary":
+		if taskApp == nil {
+			return &ToolExecutionResult{
+				ToolName: req.ToolName,
+				Success:  false,
+				Message:  "Aplikasi Task Management belum terhubung ke Hub. Silakan hubungkan di menu Connected Apps.",
+			}, nil
+		}
+		summary, _ := s.fetchAndPersistAppSummary(ctx, taskApp)
+		listArgs := map[string]interface{}{"limit": 10}
+		if filter, ok := req.Arguments["filter"].(string); ok && filter != "" {
+			switch strings.ToLower(filter) {
+			case "today":
+				listArgs["is_focus"] = true
+			case "priority":
+				listArgs["priority"] = "high"
+			case "overdue":
+				listArgs["status"] = "in_progress"
+			default:
+				listArgs["status"] = filter
+			}
+		} else {
+			listArgs["is_focus"] = true
+		}
+		tasksRes, _ := s.executeTaskAppMCPTool(ctx, taskApp, "list_tasks", listArgs)
+		combinedData := map[string]interface{}{
+			"summary": summary,
+		}
+		if tasksRes != nil && tasksRes.Data != nil {
+			combinedData["tasks"] = tasksRes.Data
+		}
+		return &ToolExecutionResult{
+			ToolName: req.ToolName,
+			Success:  true,
+			Message:  "Ringkasan dan daftar tugas berhasil diambil dari Task Management",
+			Data:     combinedData,
+			Action: &SuggestedAction{
+				Title:       "Buka Task Management",
+				Description: "Lihat ringkasan tugas hari ini",
+				AppID:       taskApp.AppID,
+				DeepLink:    fmt.Sprintf("%stasks?expected_uid=%s", taskApp.CustomURLScheme, taskApp.ConnectedUID),
+			},
+		}, nil
+
+	case "create_task", "list_tasks", "update_task_status":
 		return s.executeTaskAppMCPTool(ctx, taskApp, req.ToolName, req.Arguments)
 
 	case "create_transaction", "list_transactions", "get_financial_summary":
@@ -487,11 +531,18 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 
 	if toolName == "get_financial_summary" {
 		summary, _ := s.fetchAndPersistAppSummary(ctx, app)
+		transRes, _ := s.executeFTrackerTool(ctx, app, "list_transactions", map[string]interface{}{"limit": 5})
+		dataMap := map[string]interface{}{
+			"summary": summary,
+		}
+		if transRes != nil && transRes.Data != nil {
+			dataMap["recent_transactions"] = transRes.Data
+		}
 		return &ToolExecutionResult{
 			ToolName: toolName,
 			Success:  true,
 			Message:  "Ringkasan keuangan berhasil diambil dari F-Tracker",
-			Data:     summary,
+			Data:     dataMap,
 			Action: &SuggestedAction{
 				Title:       "Buka Laporan Keuangan",
 				Description: summary.HighlightMetric,
@@ -609,17 +660,75 @@ func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage stri
 	return res, nil
 }
 
-// callGeminiWithTools implements multi-turn function calling with Google Gemini v1beta endpoint.
-func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, userPrompt string, summaries []AppSummaryResponse) (*AIChatResponse, error) {
+func (s *hubService) executeGeminiRequestWithRetry(ctx context.Context, apiKey, preferredModel string, payload map[string]interface{}) ([]byte, error) {
 	baseURL := os.Getenv("GEMINI_BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://generativelanguage.googleapis.com"
 	}
+
+	modelsToTry := []string{preferredModel}
+	if preferredModel != "gemini-2.5-flash" {
+		modelsToTry = append(modelsToTry, "gemini-2.5-flash")
+	}
+	if preferredModel != "gemini-2.0-flash" {
+		modelsToTry = append(modelsToTry, "gemini-2.0-flash")
+	}
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	var lastErr error
+	for _, m := range modelsToTry {
+		url := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", strings.TrimRight(baseURL, "/"), m, apiKey)
+
+		for attempt := 0; attempt < 3; attempt++ {
+			if attempt > 0 {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(time.Duration(400*(1<<attempt)) * time.Millisecond):
+				}
+			}
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := s.httpClient.Do(req)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+
+			respBody, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				return respBody, nil
+			}
+
+			lastErr = fmt.Errorf("gemini HTTP %d: %s", resp.StatusCode, string(respBody))
+			// Retry on rate limit (429) or server errors (5xx)
+			if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode < 500 {
+				break
+			}
+		}
+	}
+
+	return nil, lastErr
+}
+
+// callGeminiWithTools implements multi-turn parallel function calling with Google Gemini v1beta endpoint.
+func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, userPrompt string, summaries []AppSummaryResponse) (*AIChatResponse, error) {
 	model := os.Getenv("GEMINI_MODEL")
 	if model == "" {
 		model = "gemini-2.5-flash"
 	}
-	url := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", strings.TrimRight(baseURL, "/"), model, apiKey)
 
 	linkedContext := "Belum ada aplikasi satelit (F-Tracker atau Task Management) yang terhubung."
 	if len(summaries) > 0 {
@@ -627,7 +736,7 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		linkedContext = string(summariesJSON)
 	}
 
-	systemPrompt := "You are Eka-Hub AI, a personal AI life aggregator assistant. You help users both as a smart, concise everyday assistant AND by orchestrating their connected apps (F-Tracker for finances/transactions and Task Management for tasks/todos). Respond in the user's language (Indonesian by default if the prompt is Indonesian, otherwise English) using clean, readable Markdown. When the user asks to record an expense, check budget, create a task, or list tasks, use the provided function tools; if the target satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.\n\nConnected Apps Live Context: " + linkedContext
+	systemPrompt := "You are Eka-Hub AI, a personal AI life aggregator assistant. You help users both as a smart, concise everyday assistant AND by orchestrating their connected apps (F-Tracker for finances/transactions and Task Management for tasks/todos). Respond in the user's language (Indonesian by default if the prompt is Indonesian, otherwise English) using clean, readable Markdown. When the user asks for financial summaries or transactions, use F-Tracker tools. When the user asks for tasks or todos, use Task Management tools. When the user asks about BOTH in the same message, you MUST call tools for BOTH F-Tracker and Task Management simultaneously. If a requested satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.\n\nConnected Apps Live Context: " + linkedContext
 
 	tools := GetHubGeminiTools()
 
@@ -653,22 +762,9 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		"tools":             []interface{}{tools},
 	}
 
-	bodyBytes, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
+	respBody, err := s.executeGeminiRequestWithRetry(ctx, apiKey, model, payload)
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("gemini error (%d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("AI processing error: %w", err)
 	}
 
 	var geminiResp struct {
@@ -686,7 +782,7 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		} `json:"candidates"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
 		return nil, err
 	}
 
@@ -695,56 +791,80 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 	}
 
 	candidate := geminiResp.Candidates[0]
-	firstPart := candidate.Content.Parts[0]
 
-	// Check if Gemini wants to call a tool
-	if firstPart.FunctionCall != nil {
-		fnCall := firstPart.FunctionCall
-		toolResult, execErr := s.ExecuteTool(ctx, userID, &ExecuteToolRequest{
-			ToolName:  fnCall.Name,
-			Arguments: fnCall.Args,
-		})
+	// Collect ALL function calls returned by the model (supporting parallel / multi-tool calls)
+	type fnCallInfo struct {
+		Name string
+		Args map[string]interface{}
+	}
+	var fnCalls []fnCallInfo
+	for _, part := range candidate.Content.Parts {
+		if part.FunctionCall != nil {
+			fnCalls = append(fnCalls, fnCallInfo{
+				Name: part.FunctionCall.Name,
+				Args: part.FunctionCall.Args,
+			})
+		}
+	}
 
-		toolCalls := []ToolCallDetail{
-			{
+	// Check if Gemini wants to call tools
+	if len(fnCalls) > 0 {
+		var toolCalls []ToolCallDetail
+		var actionLinks []SuggestedAction
+		var modelParts []interface{}
+		var fnResponses []interface{}
+
+		for _, fnCall := range fnCalls {
+			toolResult, execErr := s.ExecuteTool(ctx, userID, &ExecuteToolRequest{
+				ToolName:  fnCall.Name,
+				Arguments: fnCall.Args,
+			})
+
+			toolCalls = append(toolCalls, ToolCallDetail{
 				Name:      fnCall.Name,
 				Arguments: fnCall.Args,
 				Result:    toolResult,
-			},
-		}
+			})
 
-		var actionLinks []SuggestedAction
-		if toolResult != nil && toolResult.Action != nil {
-			actionLinks = append(actionLinks, *toolResult.Action)
-		}
-
-		// Turn 2: Feed functionResponse back to Gemini for natural language synthesis
-		responseVal := map[string]interface{}{"status": "success"}
-		if execErr != nil {
-			responseVal = map[string]interface{}{"status": "error", "error": execErr.Error()}
-		} else if toolResult != nil {
-			responseVal = map[string]interface{}{
-				"status":  "success",
-				"message": toolResult.Message,
-				"data":    toolResult.Data,
+			if toolResult != nil && toolResult.Action != nil {
+				actionLinks = append(actionLinks, *toolResult.Action)
 			}
+
+			responseVal := map[string]interface{}{"status": "success"}
+			if execErr != nil {
+				responseVal = map[string]interface{}{"status": "error", "error": execErr.Error()}
+			} else if toolResult != nil {
+				responseVal = map[string]interface{}{
+					"status":  "success",
+					"message": toolResult.Message,
+					"data":    toolResult.Data,
+				}
+			}
+
+			modelParts = append(modelParts, map[string]interface{}{
+				"functionCall": map[string]interface{}{
+					"name": fnCall.Name,
+					"args": fnCall.Args,
+				},
+			})
+
+			fnResponses = append(fnResponses, map[string]interface{}{
+				"functionResponse": map[string]interface{}{
+					"name":     fnCall.Name,
+					"response": responseVal,
+				},
+			})
 		}
 
+		// Turn 2: Feed all function responses back to Gemini for natural language synthesis
 		turn2Contents := append(contents,
 			map[string]interface{}{
 				"role":  "model",
-				"parts": []interface{}{map[string]interface{}{"functionCall": fnCall}},
+				"parts": modelParts,
 			},
 			map[string]interface{}{
-				"role": "function",
-				"parts": []interface{}{
-					map[string]interface{}{
-						"functionResponse": map[string]interface{}{
-							"name":     fnCall.Name,
-							"response": responseVal,
-						},
-					},
-				},
+				"role":  "function",
+				"parts": fnResponses,
 			},
 		)
 
@@ -752,26 +872,30 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 			"systemInstruction": systemInstruction,
 			"contents":          turn2Contents,
 		}
-		turn2Bytes, _ := json.Marshal(turn2Payload)
-		req2, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(turn2Bytes))
-		if err == nil {
-			req2.Header.Set("Content-Type", "application/json")
-			resp2, err2 := s.httpClient.Do(req2)
-			if err2 == nil && resp2.StatusCode == http.StatusOK {
-				defer resp2.Body.Close()
-				var finalGeminiResp struct {
-					Candidates []struct {
-						Content struct {
-							Parts []struct {
-								Text string `json:"text"`
-							} `json:"parts"`
-						} `json:"content"`
-					} `json:"candidates"`
-				}
-				if err := json.NewDecoder(resp2.Body).Decode(&finalGeminiResp); err == nil {
-					if len(finalGeminiResp.Candidates) > 0 && len(finalGeminiResp.Candidates[0].Content.Parts) > 0 {
+
+		turn2RespBody, turn2Err := s.executeGeminiRequestWithRetry(ctx, apiKey, model, turn2Payload)
+		if turn2Err == nil {
+			var finalGeminiResp struct {
+				Candidates []struct {
+					Content struct {
+						Parts []struct {
+							Text string `json:"text"`
+						} `json:"parts"`
+					} `json:"content"`
+				} `json:"candidates"`
+			}
+			if err := json.Unmarshal(turn2RespBody, &finalGeminiResp); err == nil {
+				if len(finalGeminiResp.Candidates) > 0 {
+					var replyBuilder strings.Builder
+					for _, part := range finalGeminiResp.Candidates[0].Content.Parts {
+						if part.Text != "" {
+							replyBuilder.WriteString(part.Text)
+						}
+					}
+					finalReply := strings.TrimSpace(replyBuilder.String())
+					if finalReply != "" {
 						return &AIChatResponse{
-							Reply:       finalGeminiResp.Candidates[0].Content.Parts[0].Text,
+							Reply:       finalReply,
 							ToolCalls:   toolCalls,
 							ActionLinks: actionLinks,
 						}, nil
@@ -780,19 +904,29 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 			}
 		}
 
-		// Fallback confirmation message if turn 2 fails
-		replyMsg := fmt.Sprintf("Aksi '%s' berhasil diproses.", fnCall.Name)
-		if toolResult != nil && toolResult.Message != "" {
-			replyMsg = toolResult.Message
+		// Graceful synthesis fallback if Turn 2 fails or is empty
+		var sb strings.Builder
+		sb.WriteString("Berikut ringkasan data dari aplikasi terhubung Anda:\n\n")
+		for _, tc := range toolCalls {
+			if res, ok := tc.Result.(*ToolExecutionResult); ok && res != nil {
+				sb.WriteString(fmt.Sprintf("• **%s**: %s\n", tc.Name, res.Message))
+			}
 		}
 		return &AIChatResponse{
-			Reply:       replyMsg,
+			Reply:       sb.String(),
 			ToolCalls:   toolCalls,
 			ActionLinks: actionLinks,
 		}, nil
 	}
 
+	var replyBuilder strings.Builder
+	for _, part := range candidate.Content.Parts {
+		if part.Text != "" {
+			replyBuilder.WriteString(part.Text)
+		}
+	}
+
 	return &AIChatResponse{
-		Reply: firstPart.Text,
+		Reply: strings.TrimSpace(replyBuilder.String()),
 	}, nil
 }

@@ -62,10 +62,25 @@ data class DailyBriefingResponse(
     @SerialName("suggested_actions") val suggestedActions: List<SuggestedAction> = emptyList()
 )
 
+@Serializable
+data class ToolCallDetail(
+    val name: String = "",
+    val arguments: JsonObject? = null
+)
+
+@Serializable
+data class AIChatResponse(
+    val reply: String = "",
+    @SerialName("tool_calls") val toolCalls: List<ToolCallDetail> = emptyList(),
+    @SerialName("action_links") val actionLinks: List<SuggestedAction> = emptyList()
+)
+
 data class ChatMessage(
+    val id: String = java.util.UUID.randomUUID().toString(),
     val role: String, // "user" or "assistant"
     val content: String,
-    val actions: List<SuggestedAction> = emptyList()
+    val actions: List<SuggestedAction> = emptyList(),
+    val isStreaming: Boolean = false
 )
 
 data class AccountMismatchState(
