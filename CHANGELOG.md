@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.4.0...backend-v1.4.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **hub:** support seamless create_transaction orchestration with X-Hub-User-UID header and error handling ([f9e5dec](https://github.com/eka-dev-ecosystem/eka-hub/commit/f9e5deca36f3075948d4a8b388b5857f72631bbb))
+
 # [1.4.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.3.0...backend-v1.4.0) (2026-11-13)
 
 
