@@ -55,10 +55,10 @@ fun SplashScreen(
         label = "pulseAlpha"
     )
 
-    // Silky smooth continuous shimmer sweep across capsule (starts and ends completely offscreen)
+    // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
     val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -50f,
-        targetValue = 140f,
+        initialValue = -140f,
+        targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
@@ -242,23 +242,33 @@ fun SplashScreen(
                         ),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(50.dp)
-                            .offset(x = shimmerOffset.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        HubCyan,
-                                        HubIndigo,
-                                        Color.Transparent
-                                    )
-                                ),
-                                shape = RoundedCornerShape(4.dp)
-                            )
+                    val beamBrush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            HubCyan.copy(alpha = 0.85f),
+                            HubIndigo.copy(alpha = 0.85f),
+                            Color.Transparent
+                        )
                     )
+                    Row(
+                        modifier = Modifier
+                            .width(280.dp)
+                            .fillMaxHeight()
+                            .offset(x = shimmerOffset.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .fillMaxHeight()
+                                .background(beamBrush)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .fillMaxHeight()
+                                .background(beamBrush)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

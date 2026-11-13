@@ -8,7 +8,7 @@ public struct SplashView: View {
 
     @State private var isEntranceReady = false
     @State private var isPulsing = false
-    @State private var shimmerOffset: CGFloat = -50
+    @State private var shimmerOffset: CGFloat = -140
 
     public init(onFinished: @escaping () -> Void) {
         self.onFinished = onFinished
@@ -94,23 +94,41 @@ public struct SplashView: View {
                             .fill(AppColors.surfaceCard.opacity(0.8))
                             .frame(width: 140, height: 3.5)
 
-                        // Silky smooth continuous shimmer progress beam
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.clear,
-                                        AppColors.aiCyan,
-                                        AppColors.aiBlue,
-                                        Color.clear
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                        // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
+                        HStack(spacing: 0) {
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.clear,
+                                            AppColors.aiCyan.opacity(0.85),
+                                            AppColors.aiBlue.opacity(0.85),
+                                            Color.clear
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .frame(width: 50, height: 3.5)
-                            .offset(x: shimmerOffset)
-                            .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+                                .frame(width: 140, height: 3.5)
+
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.clear,
+                                            AppColors.aiCyan.opacity(0.85),
+                                            AppColors.aiBlue.opacity(0.85),
+                                            Color.clear
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 140, height: 3.5)
+                        }
+                        .frame(width: 280, height: 3.5)
+                        .offset(x: shimmerOffset)
+                        .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
                     }
                     .frame(width: 140, height: 3.5)
                     .clipShape(Capsule())
@@ -139,8 +157,8 @@ public struct SplashView: View {
                 isPulsing = true
             }
 
-            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                shimmerOffset = 140
+            withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
+                shimmerOffset = 0
             }
 
             // Minimum display duration for silky smooth splash animation

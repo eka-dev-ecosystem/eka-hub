@@ -221,12 +221,12 @@ fun AnimatedThinkingIndicator() {
         label = "dot3"
     )
 
-    // Silky smooth continuous shimmer sweep across capsule (starts and ends completely offscreen)
+    // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
     val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -45f,
-        targetValue = 140f,
+        initialValue = -140f,
+        targetValue = 0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = LinearEasing),
+            animation = tween(1500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmer"
@@ -308,7 +308,7 @@ fun AnimatedThinkingIndicator() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Silky smooth continuous shimmer bar
+                // Silky smooth continuous shimmer bar (zero blink, seamless cyclic looping)
                 Box(
                     modifier = Modifier
                         .width(140.dp)
@@ -317,22 +317,33 @@ fun AnimatedThinkingIndicator() {
                         .background(Color(0xFF334155).copy(alpha = 0.5f), RoundedCornerShape(2.dp)),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(45.dp)
-                            .offset(x = shimmerOffset.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        HubCyan,
-                                        HubIndigo,
-                                        Color.Transparent
-                                    )
-                                )
-                            )
+                    val beamBrush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            HubCyan.copy(alpha = 0.85f),
+                            HubIndigo.copy(alpha = 0.85f),
+                            Color.Transparent
+                        )
                     )
+                    Row(
+                        modifier = Modifier
+                            .width(280.dp)
+                            .fillMaxHeight()
+                            .offset(x = shimmerOffset.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .fillMaxHeight()
+                                .background(beamBrush)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .fillMaxHeight()
+                                .background(beamBrush)
+                        )
+                    }
                 }
             }
         }
