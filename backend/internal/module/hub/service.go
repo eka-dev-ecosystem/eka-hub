@@ -568,21 +568,75 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 	if err == nil {
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("Authorization", "Bearer "+app.ReadOnlyToken)
+		httpReq.Header.Set("X-Hub-User-UID", app.ConnectedUID)
 		resp, err := s.httpClient.Do(httpReq)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
 			var rpcResp MCPJSONRPCResponse
-			if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err == nil && rpcResp.Error == nil {
+			if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err == nil {
+				if rpcResp.Error != nil {
+					return &ToolExecutionResult{
+						ToolName: toolName,
+						Success:  false,
+						Message:  fmt.Sprintf("Gagal mengeksekusi pada F-Tracker: %s", rpcResp.Error.Message),
+					}, nil
+				}
+
+				if resMap, ok := rpcResp.Result.(map[string]interface{}); ok {
+					if isErr, _ := resMap["isError"].(bool); isErr {
+						errMsg := "Gagal mengeksekusi aksi pada F-Tracker"
+						if contentList, ok := resMap["content"].([]interface{}); ok && len(contentList) > 0 {
+							if firstContent, ok := contentList[0].(map[string]interface{}); ok {
+								if txt, ok := firstContent["text"].(string); ok && txt != "" {
+									errMsg = txt
+								}
+							}
+						}
+						return &ToolExecutionResult{
+							ToolName: toolName,
+							Success:  false,
+							Message:  errMsg,
+							Data:     resMap,
+						}, nil
+					}
+				}
+
 				action := &SuggestedAction{
 					Title:       "Lihat Transaksi di F-Tracker",
 					Description: "Buka daftar transaksi",
 					AppID:       app.AppID,
 					DeepLink:    fmt.Sprintf("%sexpenses?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
 				}
+
+				successMsg := fmt.Sprintf("Aksi '%s' pada F-Tracker berhasil", toolName)
+				if toolName == "create_transaction" {
+					desc, _ := args["description"].(string)
+					var amt float64
+					switch v := args["amount"].(type) {
+					case float64:
+						amt = v
+					case int:
+						amt = float64(v)
+					case json.Number:
+						amt, _ = v.Float64()
+					}
+					if amt > 0 {
+						successMsg = fmt.Sprintf("Transaksi '%s' sebesar Rp %.0f berhasil dicatat di F-Tracker", desc, amt)
+					} else {
+						successMsg = fmt.Sprintf("Transaksi '%s' berhasil dicatat di F-Tracker", desc)
+					}
+					action = &SuggestedAction{
+						Title:       "Lihat Pengeluaran di F-Tracker",
+						Description: desc,
+						AppID:       app.AppID,
+						DeepLink:    fmt.Sprintf("%sexpenses?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+					}
+				}
+
 				return &ToolExecutionResult{
 					ToolName: toolName,
 					Success:  true,
-					Message:  fmt.Sprintf("Aksi '%s' pada F-Tracker berhasil", toolName),
+					Message:  successMsg,
 					Data:     rpcResp.Result,
 					Action:   action,
 				}, nil
@@ -600,6 +654,7 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 		}
 		restReq.Header.Set("Content-Type", "application/json")
 		restReq.Header.Set("Authorization", "Bearer "+app.ReadOnlyToken)
+		restReq.Header.Set("X-Hub-User-UID", app.ConnectedUID)
 		resp, err := s.httpClient.Do(restReq)
 		if err != nil {
 			return &ToolExecutionResult{
@@ -613,11 +668,35 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 		var resBody map[string]interface{}
 		_ = json.NewDecoder(resp.Body).Decode(&resBody)
 
+		isSuccess := resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated
 		desc, _ := args["description"].(string)
+
+		var msg string
+		if isSuccess {
+			var amt float64
+			switch v := args["amount"].(type) {
+			case float64:
+				amt = v
+			case int:
+				amt = float64(v)
+			}
+			if amt > 0 {
+				msg = fmt.Sprintf("Transaksi '%s' sebesar Rp %.0f berhasil dicatat di F-Tracker", desc, amt)
+			} else {
+				msg = fmt.Sprintf("Transaksi '%s' berhasil dicatat di F-Tracker", desc)
+			}
+		} else {
+			errMsg, _ := resBody["message"].(string)
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("HTTP %d", resp.StatusCode)
+			}
+			msg = fmt.Sprintf("Gagal mencatat transaksi di F-Tracker: %s", errMsg)
+		}
+
 		return &ToolExecutionResult{
 			ToolName: toolName,
-			Success:  resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated,
-			Message:  fmt.Sprintf("Transaksi '%s' berhasil dicatat di F-Tracker", desc),
+			Success:  isSuccess,
+			Message:  msg,
 			Data:     resBody,
 			Action: &SuggestedAction{
 				Title:       "Lihat Pengeluaran di F-Tracker",
@@ -799,7 +878,7 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 		linkedContext = string(summariesJSON)
 	}
 
-	systemPrompt := "You are Eka-Hub AI, a personal AI life aggregator assistant. You help users both as a smart, concise everyday assistant AND by orchestrating their connected apps (F-Tracker for finances/transactions and Task Management for tasks/todos). Respond in the user's language (Indonesian by default if the prompt is Indonesian, otherwise English) using clean, readable Markdown. When the user asks for financial summaries or transactions, use F-Tracker tools. When the user asks for tasks or todos, use Task Management tools. When the user asks about BOTH in the same message, you MUST call tools for BOTH F-Tracker and Task Management simultaneously. If a requested satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.\n\nConnected Apps Live Context: " + linkedContext
+	systemPrompt := "You are Eka-Hub AI, a personal AI life aggregator assistant. You help users both as a smart, concise everyday assistant AND by orchestrating their connected apps (F-Tracker for finances/transactions and Task Management for tasks/todos). Respond in the user's language (Indonesian by default if the prompt is Indonesian, otherwise English) using clean, readable Markdown. When the user asks to record or create a transaction/expense/income (e.g. 'catat pengeluaran kopi 35000', 'tambah transaksi', 'catat beli makan 25000', 'catat pemasukan gaji 5000000'), you MUST immediately invoke the `create_transaction` tool with parsed `amount` (number), `type` ('expense' or 'income'), `description`, and optional `category` or `date`. When the user asks for financial summaries or transaction history, use `get_financial_summary` or `list_transactions`. When the user asks to create or add a task/todo, invoke the `create_task` tool. When the user asks for tasks or todos, use Task Management tools (`list_tasks` or `get_tasks_summary`). When the user asks about BOTH in the same message, you MUST call tools for BOTH F-Tracker and Task Management simultaneously. If a requested satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.\n\nConnected Apps Live Context: " + linkedContext
 
 	tools := GetHubGeminiTools()
 

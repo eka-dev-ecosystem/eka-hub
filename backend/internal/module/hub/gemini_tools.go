@@ -102,29 +102,29 @@ func GetHubGeminiTools() GeminiTool {
 			},
 			{
 				Name:        "create_transaction",
-				Description: "Record a new expense or income transaction in F-Tracker finance app.",
+				Description: "Record a new expense or income transaction in F-Tracker finance app whenever user mentions buying, spending, receiving money, or recording a transaction.",
 				Parameters: map[string]interface{}{
 					"type": "OBJECT",
 					"properties": map[string]interface{}{
 						"amount": map[string]interface{}{
 							"type":        "NUMBER",
-							"description": "Transaction amount in numerical value (e.g. 50000).",
+							"description": "Transaction amount in numerical value (e.g. 50000, 35000, 100000).",
 						},
 						"type": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Transaction type: 'expense' or 'income'.",
+							"description": "Transaction type: 'expense' (pengeluaran) or 'income' (pemasukan).",
 						},
 						"description": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Description of the expense or income (e.g., 'Makan siang padang').",
+							"description": "Description of the expense or income (e.g., 'Kopi susu', 'Makan siang padang', 'Beli bensin').",
 						},
 						"category": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Category name or ID (e.g. 'Food', 'Transportation', 'Salary', 'Shopping').",
+							"description": "Category name (e.g. 'Food', 'Transportation', 'Salary', 'Shopping', 'General').",
 						},
 						"date": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Optional transaction date (YYYY-MM-DD). Defaults to today.",
+							"description": "Optional transaction date (e.g. 'YYYY-MM-DD', 'today', 'yesterday'). Defaults to today.",
 						},
 					},
 					"required": []string{"amount", "type", "description"},

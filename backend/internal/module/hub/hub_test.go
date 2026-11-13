@@ -336,6 +336,10 @@ func TestExecuteTool_CreateTransaction(t *testing.T) {
 	// Mock F-Tracker MCP Server
 	mockTrackerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/hub/mcp" {
+			if r.Header.Get("X-Hub-User-UID") != "usr_ftracker_456" {
+				http.Error(w, "missing X-Hub-User-UID", http.StatusUnauthorized)
+				return
+			}
 			resp := MCPJSONRPCResponse{
 				JSONRPC: "2.0",
 				ID:      1,
@@ -383,6 +387,10 @@ func TestExecuteTool_CreateTransaction(t *testing.T) {
 
 	if !execRes.Success {
 		t.Fatalf("expected tool execution to succeed, got: %s", execRes.Message)
+	}
+
+	if !strings.Contains(execRes.Message, "Makan siang padang") || !strings.Contains(execRes.Message, "50000") {
+		t.Errorf("expected message to mention description and amount, got: %s", execRes.Message)
 	}
 
 	if execRes.Action == nil {
