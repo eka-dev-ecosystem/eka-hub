@@ -37,14 +37,28 @@ struct EkaHubApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     #endif
     @State private var authViewModel = AuthViewModel()
+    @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if authViewModel.isAuthenticated {
-                    MainTabView(authViewModel: authViewModel)
+            ZStack {
+                if showSplash {
+                    SplashView(onFinished: {
+                        withAnimation(.easeInOut(duration: 0.45)) {
+                            showSplash = false
+                        }
+                    })
+                    .transition(.opacity)
+                    .zIndex(1)
                 } else {
-                    AuthView(viewModel: authViewModel)
+                    Group {
+                        if authViewModel.isAuthenticated {
+                            MainTabView(authViewModel: authViewModel)
+                        } else {
+                            AuthView(viewModel: authViewModel)
+                        }
+                    }
+                    .transition(.opacity)
                 }
             }
             .preferredColorScheme(.dark)

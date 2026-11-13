@@ -32,6 +32,7 @@
 		40A37BC358011DBC74AA07B7 /* AiChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20402B5C5EA3903E7E9CFBC /* AiChatView.swift */; };
 		B20AC2A9C6D190DD3DA628CD /* ConnectedAppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50780902C746121CB935667E /* ConnectedAppsView.swift */; };
 		0E3073834412B7BE2C8FFAB3 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8818F40B6C93349AF8EFB5 /* ProfileView.swift */; };
+		A1B2C3D4E5F6789012340001 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012340002 /* SplashView.swift */; };
 		3570D583229B3669189C7448 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 41DF417CC1FE611AC6D95D8C /* Localizable.xcstrings */; };
 		74C2BEAA4D5C7102AEC65E98 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 96E66F56626D3525824DBA8D /* Assets.xcassets */; };
 		CC0102030405060708090013 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = CC0102030405060708090011 /* GoogleSignIn */; };
@@ -64,6 +65,7 @@
 		A20402B5C5EA3903E7E9CFBC /* AiChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EkaHub/Features/Chat/AiChatView.swift"; sourceTree = "<group>"; };
 		50780902C746121CB935667E /* ConnectedAppsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EkaHub/Features/ConnectedApps/ConnectedAppsView.swift"; sourceTree = "<group>"; };
 		0C8818F40B6C93349AF8EFB5 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EkaHub/Features/Profile/ProfileView.swift"; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012340002 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EkaHub/Features/Splash/SplashView.swift"; sourceTree = "<group>"; };
 		41DF417CC1FE611AC6D95D8C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "EkaHub/Resources/Localizable.xcstrings"; sourceTree = "<group>"; };
 		96E66F56626D3525824DBA8D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "EkaHub/Resources/Assets.xcassets"; sourceTree = "<group>"; };
 		D04165809DDC4319488D4EF9 /* EkaHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EkaHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -110,6 +112,7 @@
 				A20402B5C5EA3903E7E9CFBC /* AiChatView.swift */,
 				50780902C746121CB935667E /* ConnectedAppsView.swift */,
 				0C8818F40B6C93349AF8EFB5 /* ProfileView.swift */,
+				A1B2C3D4E5F6789012340002 /* SplashView.swift */,
 				41DF417CC1FE611AC6D95D8C /* Localizable.xcstrings */,
 				96E66F56626D3525824DBA8D /* Assets.xcassets */,
 				D04165809DDC4319488D4EF9 /* EkaHub.app */,
@@ -218,6 +221,7 @@
 				40A37BC358011DBC74AA07B7 /* AiChatView.swift in Sources */,
 				B20AC2A9C6D190DD3DA628CD /* ConnectedAppsView.swift in Sources */,
 				0E3073834412B7BE2C8FFAB3 /* ProfileView.swift in Sources */,
+				A1B2C3D4E5F6789012340001 /* SplashView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
