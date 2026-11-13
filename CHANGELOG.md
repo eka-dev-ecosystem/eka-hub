@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.2.0...ios-v1.3.0) (2026-11-13)
+
+
+### Features
+
+* **hub:** decouple branding from specific AI providers to neutral Eka-Hub AI ([c19cada](https://github.com/eka-dev-ecosystem/eka-hub/commit/c19cada41a652514ba49717cd6a3006bce0732a7))
+* **splash:** implement modern animated splash screen in android and ios ([a2c68c9](https://github.com/eka-dev-ecosystem/eka-hub/commit/a2c68c9ab085689f7c469f1a01c0a10594e20ac1))
+
 # [1.2.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.1.0...backend-v1.2.0) (2026-11-12)
 
 
