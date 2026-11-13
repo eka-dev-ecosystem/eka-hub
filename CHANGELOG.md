@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.3.0...backend-v1.4.0) (2026-11-13)
+
+
+### Features
+
+* **ai:** conversational multi-turn chat memory and seamless continuous shimmer progress bar ([d7fe864](https://github.com/eka-dev-ecosystem/eka-hub/commit/d7fe8643e9bc2a8f06602962421e4a4c3b9d7c2e))
+
 # [1.3.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.2.0...backend-v1.3.0) (2026-11-13)
 
 
