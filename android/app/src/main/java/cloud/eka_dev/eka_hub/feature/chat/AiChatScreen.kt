@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -220,12 +221,12 @@ fun AnimatedThinkingIndicator() {
         label = "dot3"
     )
 
-    // Shimmer sweep across capsule
+    // Silky smooth continuous shimmer sweep across capsule (starts and ends completely offscreen)
     val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
+        initialValue = -45f,
+        targetValue = 140f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1300, easing = LinearEasing),
+            animation = tween(1400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmer"
@@ -307,20 +308,20 @@ fun AnimatedThinkingIndicator() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Subtle fluid shimmer bar
+                // Silky smooth continuous shimmer bar
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.55f)
-                        .height(3.dp)
+                        .width(140.dp)
+                        .height(3.5.dp)
+                        .clip(RoundedCornerShape(2.dp))
                         .background(Color(0xFF334155).copy(alpha = 0.5f), RoundedCornerShape(2.dp)),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    val progressFraction = ((shimmerOffset + 1f) / 2f).coerceIn(0f, 1f)
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .width(36.dp)
-                            .offset(x = (progressFraction * 70).dp)
+                            .width(45.dp)
+                            .offset(x = shimmerOffset.dp)
                             .background(
                                 brush = Brush.horizontalGradient(
                                     colors = listOf(
@@ -329,8 +330,7 @@ fun AnimatedThinkingIndicator() {
                                         HubIndigo,
                                         Color.Transparent
                                     )
-                                ),
-                                shape = RoundedCornerShape(2.dp)
+                                )
                             )
                     )
                 }

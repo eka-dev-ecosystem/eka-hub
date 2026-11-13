@@ -31,6 +31,7 @@ type HubRepository interface {
 	DeleteLinkedApp(ctx context.Context, userID, appID string) error
 
 	SaveChatMessage(ctx context.Context, userID, role, content string, toolCalls, toolResponses interface{}) error
+	GetRecentChatMessages(ctx context.Context, userID string, limit int) ([]StoredChatMessage, error)
 }
 
 type hubRepository struct {
@@ -241,4 +242,30 @@ func (r *hubRepository) SaveChatMessage(ctx context.Context, userID, role, conte
 		_, err := executor.ExecContext(ctx, query, userID, role, content, tcJSON, trJSON)
 		return err
 	})
+}
+
+func (r *hubRepository) GetRecentChatMessages(ctx context.Context, userID string, limit int) ([]StoredChatMessage, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := `
+		SELECT id, hub_user_id, role, content, created_at
+		FROM ai_chat_messages
+		WHERE hub_user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+	var rows []StoredChatMessage
+	err := r.withTx(ctx, func(executor database.QueryerExecer) error {
+		return executor.SelectContext(ctx, &rows, query, userID, limit)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Reverse to chronological order (oldest first)
+	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
+		rows[i], rows[j] = rows[j], rows[i]
+	}
+	return rows, nil
 }

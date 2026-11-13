@@ -8,7 +8,7 @@ public struct SplashView: View {
 
     @State private var isEntranceReady = false
     @State private var isPulsing = false
-    @State private var shimmerOffset: CGFloat = -1.0
+    @State private var shimmerOffset: CGFloat = -50
 
     public init(onFinished: @escaping () -> Void) {
         self.onFinished = onFinished
@@ -92,9 +92,9 @@ public struct SplashView: View {
                         // Capsule track
                         Capsule()
                             .fill(AppColors.surfaceCard.opacity(0.8))
-                            .frame(width: 130, height: 3.5)
+                            .frame(width: 140, height: 3.5)
 
-                        // Shimmer progress beam
+                        // Silky smooth continuous shimmer progress beam
                         Capsule()
                             .fill(
                                 LinearGradient(
@@ -109,9 +109,10 @@ public struct SplashView: View {
                                 )
                             )
                             .frame(width: 50, height: 3.5)
-                            .offset(x: ((shimmerOffset + 1.0) / 2.0) * 80)
+                            .offset(x: shimmerOffset)
                             .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
                     }
+                    .frame(width: 140, height: 3.5)
                     .clipShape(Capsule())
 
                     Text("INITIALIZING ECOSYSTEM...")
@@ -138,8 +139,8 @@ public struct SplashView: View {
                 isPulsing = true
             }
 
-            withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
-                shimmerOffset = 1.0
+            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                shimmerOffset = 140
             }
 
             // Minimum display duration for silky smooth splash animation

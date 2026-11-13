@@ -649,7 +649,9 @@ func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage stri
 		return nil, errors.New("GEMINI_API_KEY is not configured on the server")
 	}
 
-	res, err := s.callGeminiWithTools(ctx, apiKey, userID, userMessage, summaries)
+	recentMessages, _ := s.repo.GetRecentChatMessages(ctx, userID, 10)
+
+	res, err := s.callGeminiWithTools(ctx, apiKey, userID, userMessage, summaries, recentMessages)
 	if err != nil {
 		return nil, fmt.Errorf("AI processing error: %w", err)
 	}
@@ -723,8 +725,69 @@ func (s *hubService) executeGeminiRequestWithRetry(ctx context.Context, apiKey, 
 	return nil, lastErr
 }
 
+func buildGeminiConversationContents(history []StoredChatMessage, currentPrompt string) []map[string]interface{} {
+	var contents []map[string]interface{}
+
+	for _, msg := range history {
+		text := strings.TrimSpace(msg.Content)
+		if text == "" {
+			continue
+		}
+
+		role := "user"
+		if msg.Role == "assistant" || msg.Role == "model" {
+			role = "model"
+		}
+
+		// Ensure the first turn in conversation is "user"
+		if len(contents) == 0 && role != "user" {
+			continue
+		}
+
+		// If consecutive turns have the same role, combine them
+		if len(contents) > 0 && contents[len(contents)-1]["role"] == role {
+			prevParts, ok := contents[len(contents)-1]["parts"].([]map[string]interface{})
+			if ok && len(prevParts) > 0 {
+				prevText, _ := prevParts[0]["text"].(string)
+				contents[len(contents)-1]["parts"] = []map[string]interface{}{
+					{"text": prevText + "\n" + text},
+				}
+				continue
+			}
+		}
+
+		contents = append(contents, map[string]interface{}{
+			"role": role,
+			"parts": []map[string]interface{}{
+				{"text": text},
+			},
+		})
+	}
+
+	cleanPrompt := strings.TrimSpace(currentPrompt)
+	if len(contents) > 0 && contents[len(contents)-1]["role"] == "user" {
+		prevParts, ok := contents[len(contents)-1]["parts"].([]map[string]interface{})
+		if ok && len(prevParts) > 0 {
+			prevText, _ := prevParts[0]["text"].(string)
+			contents[len(contents)-1]["parts"] = []map[string]interface{}{
+				{"text": prevText + "\n" + cleanPrompt},
+			}
+			return contents
+		}
+	}
+
+	contents = append(contents, map[string]interface{}{
+		"role": "user",
+		"parts": []map[string]interface{}{
+			{"text": cleanPrompt},
+		},
+	})
+
+	return contents
+}
+
 // callGeminiWithTools implements multi-turn parallel function calling with Google Gemini v1beta endpoint.
-func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, userPrompt string, summaries []AppSummaryResponse) (*AIChatResponse, error) {
+func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, userPrompt string, summaries []AppSummaryResponse, history []StoredChatMessage) (*AIChatResponse, error) {
 	model := os.Getenv("GEMINI_MODEL")
 	if model == "" {
 		model = "gemini-2.5-flash"
@@ -740,15 +803,8 @@ func (s *hubService) callGeminiWithTools(ctx context.Context, apiKey, userID, us
 
 	tools := GetHubGeminiTools()
 
-	// Initial User Request Turn
-	contents := []map[string]interface{}{
-		{
-			"role": "user",
-			"parts": []map[string]interface{}{
-				{"text": userPrompt},
-			},
-		},
-	}
+	// Multi-Turn Conversation History + Current User Request
+	contents := buildGeminiConversationContents(history, userPrompt)
 
 	systemInstruction := map[string]interface{}{
 		"parts": []map[string]interface{}{

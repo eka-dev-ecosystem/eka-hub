@@ -490,7 +490,7 @@ public struct ThinkingIndicatorView: View {
     @State private var dot1Offset: CGFloat = 0
     @State private var dot2Offset: CGFloat = 0
     @State private var dot3Offset: CGFloat = 0
-    @State private var shimmerOffset: CGFloat = -1.0
+    @State private var shimmerOffset: CGFloat = -50
 
     public init() {}
 
@@ -564,10 +564,11 @@ public struct ThinkingIndicatorView: View {
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: 48, height: 3.5)
-                        .offset(x: ((shimmerOffset + 1.0) / 2.0) * 92)
+                        .frame(width: 50, height: 3.5)
+                        .offset(x: shimmerOffset)
                         .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
                 }
+                .frame(width: 140, height: 3.5)
                 .clipShape(Capsule())
             }
             .padding(.top, 4)
@@ -587,8 +588,8 @@ public struct ThinkingIndicatorView: View {
             withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(0.3)) {
                 dot3Offset = -5
             }
-            withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
-                shimmerOffset = 1.0
+            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                shimmerOffset = 140
             }
         }
     }

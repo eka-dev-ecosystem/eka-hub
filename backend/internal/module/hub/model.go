@@ -155,3 +155,12 @@ type MCPJSONRPCError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
+
+// StoredChatMessage represents a persisted AI chat message for multi-turn conversational context.
+type StoredChatMessage struct {
+	ID        string    `json:"id" db:"id"`
+	HubUserID string    `json:"hub_user_id" db:"hub_user_id"`
+	Role      string    `json:"role" db:"role"`
+	Content   string    `json:"content" db:"content"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}

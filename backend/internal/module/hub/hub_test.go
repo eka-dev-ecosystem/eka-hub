@@ -104,6 +104,13 @@ func (m *mockHubRepo) SaveChatMessage(ctx context.Context, userID, role, content
 	return nil
 }
 
+func (m *mockHubRepo) GetRecentChatMessages(ctx context.Context, userID string, limit int) ([]StoredChatMessage, error) {
+	return []StoredChatMessage{
+		{ID: "1", Role: "user", Content: "Siapa nama saya?"},
+		{ID: "2", Role: "assistant", Content: "Nama Anda Eka."},
+	}, nil
+}
+
 func TestInitiateLink(t *testing.T) {
 	repo := newMockHubRepo()
 	service := NewHubService(repo, &mockTransactor{})
@@ -601,5 +608,33 @@ func TestProcessAIChat_MultiToolOrchestration(t *testing.T) {
 
 	if !strings.Contains(chatResp.Reply, "Pengeluaran") || !strings.Contains(chatResp.Reply, "tugas") {
 		t.Errorf("expected combined synthesized reply, got: %s", chatResp.Reply)
+	}
+}
+
+func TestBuildGeminiConversationContents(t *testing.T) {
+	history := []StoredChatMessage{
+		{Role: "user", Content: "Halo, nama saya Budi"},
+		{Role: "assistant", Content: "Halo Budi! Ada yang bisa saya bantu?"},
+	}
+	currentPrompt := "Berapa pengeluaran saya hari ini?"
+
+	contents := buildGeminiConversationContents(history, currentPrompt)
+	if len(contents) != 3 {
+		t.Fatalf("expected 3 conversation turns, got %d", len(contents))
+	}
+
+	if contents[0]["role"] != "user" {
+		t.Errorf("expected turn 0 to be user, got %v", contents[0]["role"])
+	}
+	if contents[1]["role"] != "model" {
+		t.Errorf("expected turn 1 to be model, got %v", contents[1]["role"])
+	}
+	if contents[2]["role"] != "user" {
+		t.Errorf("expected turn 2 to be user, got %v", contents[2]["role"])
+	}
+
+	parts, ok := contents[2]["parts"].([]map[string]interface{})
+	if !ok || parts[0]["text"] != currentPrompt {
+		t.Errorf("expected turn 2 to contain currentPrompt, got %v", parts)
 	}
 }
