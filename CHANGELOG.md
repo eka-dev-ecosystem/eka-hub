@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.2.0...backend-v1.3.0) (2026-11-13)
+
+
+### Features
+
+* **ai:** multi-tool orchestration, resilient retry, streaming response, and animated thinking indicator ([8d804f3](https://github.com/eka-dev-ecosystem/eka-hub/commit/8d804f3fb3d4b96af932d7f4faef23e2fda264be))
+* **splash:** implement modern animated splash screen in android and ios ([a2c68c9](https://github.com/eka-dev-ecosystem/eka-hub/commit/a2c68c9ab085689f7c469f1a01c0a10594e20ac1))
+
 # [1.3.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.2.0...ios-v1.3.0) (2026-11-13)
 
 
