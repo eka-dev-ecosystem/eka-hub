@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.3.0...ios-v1.4.0) (2026-11-13)
+
+
+### Bug Fixes
+
+* **hub:** support seamless create_transaction orchestration with X-Hub-User-UID header and error handling ([f9e5dec](https://github.com/eka-dev-ecosystem/eka-hub/commit/f9e5deca36f3075948d4a8b388b5857f72631bbb))
+* **ui:** eliminate blinking in progress bar for splash and thinking indicator using seamless conveyor shimmer ([a319c04](https://github.com/eka-dev-ecosystem/eka-hub/commit/a319c0405acc98540b581c1af4dca9f5cb140e8a))
+
+
+### Features
+
+* **ai:** conversational multi-turn chat memory and seamless continuous shimmer progress bar ([d7fe864](https://github.com/eka-dev-ecosystem/eka-hub/commit/d7fe8643e9bc2a8f06602962421e4a4c3b9d7c2e))
+* **ai:** multi-tool orchestration, resilient retry, streaming response, and animated thinking indicator ([8d804f3](https://github.com/eka-dev-ecosystem/eka-hub/commit/8d804f3fb3d4b96af932d7f4faef23e2fda264be))
+
 ## [1.4.1](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.4.0...backend-v1.4.1) (2026-11-13)
 
 
