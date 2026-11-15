@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.4.0...ios-v1.5.0) (2026-11-15)
+
+
+### Features
+
+* **hub:** improve shortcut prompt UX and add timezone & smart category mapping to AI transactions ([4e8a964](https://github.com/eka-dev-ecosystem/eka-hub/commit/4e8a964353b10ff44d4e1420f4539aa9cf6f72cc))
+
+
+### Performance Improvements
+
+* **splash:** eliminate 0.5s transition hitch via ZStack pre-warming and animated navigation ([253e73f](https://github.com/eka-dev-ecosystem/eka-hub/commit/253e73fe5b8c79a8f1c126d914374615f140c905))
+
 # [1.5.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.4.1...backend-v1.5.0) (2026-11-15)
 
 
