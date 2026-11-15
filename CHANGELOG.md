@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.4.1...backend-v1.5.0) (2026-11-15)
+
+
+### Bug Fixes
+
+* **ui:** eliminate blinking in progress bar for splash and thinking indicator using seamless conveyor shimmer ([a319c04](https://github.com/eka-dev-ecosystem/eka-hub/commit/a319c0405acc98540b581c1af4dca9f5cb140e8a))
+
+
+### Features
+
+* **hub:** improve shortcut prompt UX and add timezone & smart category mapping to AI transactions ([4e8a964](https://github.com/eka-dev-ecosystem/eka-hub/commit/4e8a964353b10ff44d4e1420f4539aa9cf6f72cc))
+
 # [1.4.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.3.0...ios-v1.4.0) (2026-11-13)
 
 
