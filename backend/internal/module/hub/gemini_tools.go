@@ -120,11 +120,11 @@ func GetHubGeminiTools() GeminiTool {
 						},
 						"category": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Category name (e.g. 'Food', 'Transportation', 'Salary', 'Shopping', 'General').",
+							"description": "Category name for the transaction. Map intelligently based on the item: 'Makanan & Minuman' for food, coffee, drinks, cafe, restaurants, snacks; 'Transportasi' for gas/fuel/bensin, parking, ojol, taxi, transit; 'Belanja' for shopping, groceries, indomaret/alfamart, retail; 'Tagihan & Utilitas' for electricity/PLN, water/PDAM, internet/wifi, phone bills; 'Gaji & Pendapatan' for salary, wages; 'Investasi & Tabungan' for investment, savings; 'Bonus & Lain-lain' for gifts, bonuses, etc.",
 						},
 						"date": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Optional transaction date (e.g. 'YYYY-MM-DD', 'today', 'yesterday'). Defaults to today.",
+							"description": "Optional transaction date in 'YYYY-MM-DD' format relative to user's local date, or 'today' / 'yesterday'. Defaults to today.",
 						},
 					},
 					"required": []string{"amount", "type", "description"},

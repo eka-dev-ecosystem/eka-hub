@@ -271,10 +271,8 @@ public struct AiChatView: View {
 
     private func promptTile(icon: String, color: Color, title: String, prompt: String) -> some View {
         Button(action: {
-            isInputFocused = false
-            Task {
-                await viewModel.sendQuickPrompt(prompt)
-            }
+            viewModel.inputText = prompt
+            isInputFocused = true
         }) {
             VStack(alignment: .leading, spacing: 10) {
                 ZStack {
