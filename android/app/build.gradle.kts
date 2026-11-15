@@ -74,13 +74,20 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = getEnv("KEYSTORE_FILE", "ANDROID_KEYSTORE_FILE", defaultVal = rootProject.file("ekahub-release.jks").absolutePath)
+            val keystorePath = getEnv(
+                "KEYSTORE_FILE",
+                "ANDROID_KEYSTORE_FILE",
+                "ANDROID_KEYSTORE_PATH",
+                defaultVal = rootProject.file("ekahub-release.jks").absolutePath
+            )
             val keystoreFile = file(keystorePath)
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
-                storePassword = getEnv("KEYSTORE_PASSWORD", defaultVal = "EkaHubSecure2026!")
-                keyAlias = getEnv("KEY_ALIAS", defaultVal = "ekahub")
-                keyPassword = getEnv("KEY_PASSWORD", defaultVal = "EkaHubSecure2026!")
+                storePassword = getEnv("KEYSTORE_PASSWORD", "ANDROID_KEYSTORE_PASSWORD", defaultVal = "EkaHubSecureRelease2026!")
+                keyAlias = getEnv("KEY_ALIAS", "ANDROID_KEY_ALIAS", defaultVal = "ekahub")
+                keyPassword = getEnv("KEY_PASSWORD", "ANDROID_KEY_PASSWORD", defaultVal = "EkaHubSecureRelease2026!")
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
@@ -91,6 +98,11 @@ android {
             val debugSseUrl = getEnv("DEV_SSE_URL", "SSE_URL", defaultVal = "${debugBaseUrl.trimEnd('/')}/realtime/sse/events")
             buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
             buildConfigField("String", "SSE_URL", "\"$debugSseUrl\"")
+
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
+            }
         }
         release {
             isMinifyEnabled = false

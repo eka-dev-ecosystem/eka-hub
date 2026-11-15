@@ -96,6 +96,13 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "🔑 Mendecode keystore dari GitHub Secrets ANDROID_KEYSTORE_BASE64..."
             echo "$KEYSTORE_BASE64" | base64 --decode > ekahub-release.jks
+          elif [ -f ekahub-release.jks.base64 ]; then
+            echo "🔑 Mendecode keystore dari repository file ekahub-release.jks.base64..."
+            base64 --decode ekahub-release.jks.base64 > ekahub-release.jks
+          elif [ -f ekahub-release.jks ]; then
+            echo "🔑 Menggunakan ekahub-release.jks yang sudah ada di workspace..."
+          else
+            echo "⚠️ Release keystore tidak ditemukan!"
           fi
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
