@@ -42,23 +42,25 @@ struct EkaHubApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                // Underlying base layer: Pre-warmed & ready during the splash screen
+                Group {
+                    if authViewModel.isAuthenticated {
+                        MainTabView(authViewModel: authViewModel)
+                    } else {
+                        AuthView(viewModel: authViewModel)
+                    }
+                }
+                .disabled(showSplash)
+
+                // Splash screen overlay: smoothly fades out over the pre-warmed UI
                 if showSplash {
                     SplashView(onFinished: {
-                        withAnimation(.easeInOut(duration: 0.45)) {
+                        withAnimation(.easeInOut(duration: 0.42)) {
                             showSplash = false
                         }
                     })
                     .transition(.opacity)
                     .zIndex(1)
-                } else {
-                    Group {
-                        if authViewModel.isAuthenticated {
-                            MainTabView(authViewModel: authViewModel)
-                        } else {
-                            AuthView(viewModel: authViewModel)
-                        }
-                    }
-                    .transition(.opacity)
                 }
             }
             .preferredColorScheme(.dark)

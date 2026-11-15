@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -56,7 +58,11 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     containerColor = HubDarkBg,
                     bottomBar = {
-                        if (showBottomBar) {
+                        AnimatedVisibility(
+                            visible = showBottomBar,
+                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(250)),
+                            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(200))
+                        ) {
                             NavigationBar(
                                 containerColor = HubDarkSurface,
                                 contentColor = Color.White
@@ -136,7 +142,11 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "splash",
-                        modifier = Modifier.padding(if (showBottomBar) innerPadding else PaddingValues(0.dp))
+                        modifier = Modifier.padding(if (showBottomBar) innerPadding else PaddingValues(0.dp)),
+                        enterTransition = { fadeIn(tween(350)) },
+                        exitTransition = { fadeOut(tween(300)) },
+                        popEnterTransition = { fadeIn(tween(350)) },
+                        popExitTransition = { fadeOut(tween(300)) }
                     ) {
                         composable("splash") {
                             SplashScreen(

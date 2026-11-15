@@ -163,7 +163,9 @@ public struct SplashView: View {
 
             // Minimum display duration for silky smooth splash animation
             try? await Task.sleep(nanoseconds: 1_400_000_000)
-            onFinished()
+            await MainActor.run {
+                onFinished()
+            }
         }
     }
 }
