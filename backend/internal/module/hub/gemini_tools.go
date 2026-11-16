@@ -18,7 +18,7 @@ func GetHubGeminiTools() GeminiTool {
 		FunctionDeclarations: []GeminiFunctionDeclaration{
 			{
 				Name:        "create_task",
-				Description: "Create a new actionable task directly in Task Management app pipeline.",
+				Description: "Create a new actionable task directly in Task Management app pipeline. ONLY invoke this tool after the user has explicitly confirmed the proposed task details, or when the user explicitly commands immediate creation.",
 				Parameters: map[string]interface{}{
 					"type": "OBJECT",
 					"properties": map[string]interface{}{
@@ -102,7 +102,7 @@ func GetHubGeminiTools() GeminiTool {
 			},
 			{
 				Name:        "create_transaction",
-				Description: "Record a new expense or income transaction in F-Tracker finance app whenever user mentions buying, spending, receiving money, or recording a transaction.",
+				Description: "Record a new expense or income transaction in F-Tracker finance app. ONLY invoke this tool after the user has explicitly confirmed the proposed transaction details, or when the user explicitly commands immediate recording.",
 				Parameters: map[string]interface{}{
 					"type": "OBJECT",
 					"properties": map[string]interface{}{
@@ -120,7 +120,7 @@ func GetHubGeminiTools() GeminiTool {
 						},
 						"category": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Category name for the transaction. Map intelligently based on the item: 'Makanan & Minuman' for food, coffee, drinks, cafe, restaurants, snacks; 'Transportasi' for gas/fuel/bensin, parking, ojol, taxi, transit; 'Belanja' for shopping, groceries, indomaret/alfamart, retail; 'Tagihan & Utilitas' for electricity/PLN, water/PDAM, internet/wifi, phone bills; 'Gaji & Pendapatan' for salary, wages; 'Investasi & Tabungan' for investment, savings; 'Bonus & Lain-lain' for gifts, bonuses, etc.",
+							"description": "Category name for the transaction. Prioritize matching existing categories in F-Tracker (e.g. use 'Food and Drink' if already available; understand English & Indonesian synonyms like 'Food and Drink' == 'Makanan & Minuman', 'Transport' == 'Transportasi', 'Shopping' == 'Belanja', 'Bills & Utilities' == 'Tagihan & Utilitas'). Never create new category names unnecessarily.",
 						},
 						"date": map[string]interface{}{
 							"type":        "STRING",
