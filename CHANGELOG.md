@@ -1,3 +1,22 @@
+# [1.6.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.5.0...backend-v1.6.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **android:** add release keystore and configure signed APK build in CI/CD ([c80def5](https://github.com/eka-dev-ecosystem/eka-hub/commit/c80def5833560cc57acd4776e41de85d7897182c))
+
+
+### Features
+
+* **android:** add official Eka-Hub adaptive app icon and dark window splash screen theme ([ec1454d](https://github.com/eka-dev-ecosystem/eka-hub/commit/ec1454d52be05d11c6a07fdcdd6d2f3904d6152d))
+* **hub:** enforce draft-and-confirm protocol and smart category reuse for AI satellite actions ([85c5f85](https://github.com/eka-dev-ecosystem/eka-hub/commit/85c5f850a64b84e20731c3b942a7bafb94450fa7))
+* **ui:** implement carousel shimmer progress bar with full edge exit on Android and iOS ([ad646df](https://github.com/eka-dev-ecosystem/eka-hub/commit/ad646df2592e648aa060a17283f816ad4070b0d3))
+
+
+### Performance Improvements
+
+* **splash:** eliminate 0.5s transition hitch via ZStack pre-warming and animated navigation ([253e73f](https://github.com/eka-dev-ecosystem/eka-hub/commit/253e73fe5b8c79a8f1c126d914374615f140c905))
+
 # [1.6.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.5.0...ios-v1.6.0) (2026-11-16)
 
 
