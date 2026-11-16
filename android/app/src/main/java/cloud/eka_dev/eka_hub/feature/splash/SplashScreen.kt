@@ -55,15 +55,15 @@ fun SplashScreen(
         label = "pulseAlpha"
     )
 
-    // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
-    val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -140f,
-        targetValue = 0f,
+    // Fluid carousel shimmer sweep with full edge exit behavior
+    val shimmerProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
+            animation = tween(1250, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "shimmerOffset"
+        label = "shimmerProgress"
     )
 
     var hasSession by remember { mutableStateOf(false) }
@@ -84,8 +84,8 @@ fun SplashScreen(
         val token = tokenManager.getAccessToken()
         hasSession = !token.isNullOrEmpty()
 
-        // Minimum display duration for smooth brand animation
-        delay(1400)
+        // Minimum display duration (1550ms) to allow the beam to fully exit past the right edge before transition
+        delay(1550)
         onSplashFinished(hasSession)
     }
 
@@ -250,22 +250,18 @@ fun SplashScreen(
                             Color.Transparent
                         )
                     )
-                    Row(
-                        modifier = Modifier
-                            .width(280.dp)
-                            .fillMaxHeight()
-                            .offset(x = shimmerOffset.dp)
-                    ) {
+                    // Carousel progression: track width = 140dp, beam width = 56dp, total cycle = 196dp
+                    val currentOffset = shimmerProgress * 196f
+                    val primaryX = -56f + currentOffset
+                    val followX = primaryX - 196f
+                    val exitX = primaryX + 196f
+
+                    listOf(primaryX, followX, exitX).forEach { posX ->
                         Box(
                             modifier = Modifier
-                                .width(140.dp)
+                                .width(56.dp)
                                 .fillMaxHeight()
-                                .background(beamBrush)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(140.dp)
-                                .fillMaxHeight()
+                                .offset(x = posX.dp)
                                 .background(beamBrush)
                         )
                     }

@@ -8,7 +8,39 @@ public struct SplashView: View {
 
     @State private var isEntranceReady = false
     @State private var isPulsing = false
-    @State private var shimmerOffset: CGFloat = -140
+    @State private var shimmerPhase: CGFloat = 0
+
+    private var primaryX: CGFloat {
+        -56 + (shimmerPhase * 196)
+    }
+
+    private var followX: CGFloat {
+        primaryX - 196
+    }
+
+    private var exitX: CGFloat {
+        primaryX + 196
+    }
+
+    @ViewBuilder
+    private func shimmerBeam(offset: CGFloat) -> some View {
+        Capsule()
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.clear,
+                        AppColors.aiCyan.opacity(0.85),
+                        AppColors.aiBlue.opacity(0.85),
+                        Color.clear
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(width: 56, height: 3.5)
+            .offset(x: offset)
+            .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+    }
 
     public init(onFinished: @escaping () -> Void) {
         self.onFinished = onFinished
@@ -94,41 +126,10 @@ public struct SplashView: View {
                             .fill(AppColors.surfaceCard.opacity(0.8))
                             .frame(width: 140, height: 3.5)
 
-                        // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
-                        HStack(spacing: 0) {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.clear,
-                                            AppColors.aiCyan.opacity(0.85),
-                                            AppColors.aiBlue.opacity(0.85),
-                                            Color.clear
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: 140, height: 3.5)
-
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.clear,
-                                            AppColors.aiCyan.opacity(0.85),
-                                            AppColors.aiBlue.opacity(0.85),
-                                            Color.clear
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: 140, height: 3.5)
-                        }
-                        .frame(width: 280, height: 3.5)
-                        .offset(x: shimmerOffset)
-                        .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+                        // Fluid Carousel Shimmer (full edge exit, zero pop)
+                        shimmerBeam(offset: primaryX)
+                        shimmerBeam(offset: followX)
+                        shimmerBeam(offset: exitX)
                     }
                     .frame(width: 140, height: 3.5)
                     .clipShape(Capsule())
@@ -157,12 +158,12 @@ public struct SplashView: View {
                 isPulsing = true
             }
 
-            withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
-                shimmerOffset = 0
+            withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) {
+                shimmerPhase = 1.0
             }
 
-            // Minimum display duration for silky smooth splash animation
-            try? await Task.sleep(nanoseconds: 1_400_000_000)
+            // Minimum display duration (1550ms) to allow the beam to fully exit past the right edge
+            try? await Task.sleep(nanoseconds: 1_550_000_000)
             await MainActor.run {
                 onFinished()
             }

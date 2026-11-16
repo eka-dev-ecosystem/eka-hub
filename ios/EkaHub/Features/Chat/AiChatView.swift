@@ -488,7 +488,39 @@ public struct ThinkingIndicatorView: View {
     @State private var dot1Offset: CGFloat = 0
     @State private var dot2Offset: CGFloat = 0
     @State private var dot3Offset: CGFloat = 0
-    @State private var shimmerOffset: CGFloat = -140
+    @State private var shimmerPhase: CGFloat = 0
+
+    private var primaryX: CGFloat {
+        -56 + (shimmerPhase * 196)
+    }
+
+    private var followX: CGFloat {
+        primaryX - 196
+    }
+
+    private var exitX: CGFloat {
+        primaryX + 196
+    }
+
+    @ViewBuilder
+    private func shimmerBeam(offset: CGFloat) -> some View {
+        Capsule()
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.clear,
+                        AppColors.aiCyan.opacity(0.85),
+                        AppColors.aiBlue.opacity(0.85),
+                        Color.clear
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(width: 56, height: 3.5)
+            .offset(x: offset)
+            .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+    }
 
     public init() {}
 
@@ -543,47 +575,15 @@ public struct ThinkingIndicatorView: View {
                     }
                 }
 
-                // Fluid Shimmer Capsule Loader
+                // Fluid Carousel Shimmer Capsule Loader (full edge exit, zero pop)
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(AppColors.surfaceCard.opacity(0.8))
                         .frame(width: 140, height: 3.5)
 
-                    // Silky smooth continuous conveyor shimmer (zero blink, seamless cyclic looping)
-                    HStack(spacing: 0) {
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.clear,
-                                        AppColors.aiCyan.opacity(0.85),
-                                        AppColors.aiBlue.opacity(0.85),
-                                        Color.clear
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: 140, height: 3.5)
-
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.clear,
-                                        AppColors.aiCyan.opacity(0.85),
-                                        AppColors.aiBlue.opacity(0.85),
-                                        Color.clear
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: 140, height: 3.5)
-                    }
-                    .frame(width: 280, height: 3.5)
-                    .offset(x: shimmerOffset)
-                    .shadow(color: AppColors.aiCyan.opacity(0.8), radius: 6)
+                    shimmerBeam(offset: primaryX)
+                    shimmerBeam(offset: followX)
+                    shimmerBeam(offset: exitX)
                 }
                 .frame(width: 140, height: 3.5)
                 .clipShape(Capsule())
@@ -605,8 +605,8 @@ public struct ThinkingIndicatorView: View {
             withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(0.3)) {
                 dot3Offset = -5
             }
-            withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
-                shimmerOffset = 0
+            withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) {
+                shimmerPhase = 1.0
             }
         }
     }
