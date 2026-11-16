@@ -1,3 +1,16 @@
+# [1.6.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.5.0...ios-v1.6.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **android:** add release keystore and configure signed APK build in CI/CD ([c80def5](https://github.com/eka-dev-ecosystem/eka-hub/commit/c80def5833560cc57acd4776e41de85d7897182c))
+
+
+### Features
+
+* **android:** add official Eka-Hub adaptive app icon and dark window splash screen theme ([ec1454d](https://github.com/eka-dev-ecosystem/eka-hub/commit/ec1454d52be05d11c6a07fdcdd6d2f3904d6152d))
+* **ui:** implement carousel shimmer progress bar with full edge exit on Android and iOS ([ad646df](https://github.com/eka-dev-ecosystem/eka-hub/commit/ad646df2592e648aa060a17283f816ad4070b0d3))
+
 # [1.5.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.4.0...ios-v1.5.0) (2026-11-15)
 
 
