@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.6.0...backend-v1.7.0) (2026-11-17)
+
+
+### Features
+
+* **chat:** Gemini-grade AI chat experience with rich markdown, syntax-highlighted code blocks, and multi-session chat history ([1b11868](https://github.com/eka-dev-ecosystem/eka-hub/commit/1b1186899464ee3b9c72e8d196efc78dbb2489e6))
+
 # [1.6.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.5.0...backend-v1.6.0) (2026-11-16)
 
 
