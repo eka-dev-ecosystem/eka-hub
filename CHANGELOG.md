@@ -1,3 +1,12 @@
+# [1.7.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/ios-v1.6.0...ios-v1.7.0) (2026-11-17)
+
+
+### Features
+
+* **ai-hub:** support income source linking (linkedIncomeId) for f-tracker expenses ([7c30f76](https://github.com/eka-dev-ecosystem/eka-hub/commit/7c30f76233bc486ce83495b0a7af87958aefa768))
+* **chat:** Gemini-grade AI chat experience with rich markdown, syntax-highlighted code blocks, and multi-session chat history ([1b11868](https://github.com/eka-dev-ecosystem/eka-hub/commit/1b1186899464ee3b9c72e8d196efc78dbb2489e6))
+* **hub:** enforce draft-and-confirm protocol and smart category reuse for AI satellite actions ([85c5f85](https://github.com/eka-dev-ecosystem/eka-hub/commit/85c5f850a64b84e20731c3b942a7bafb94450fa7))
+
 # [1.8.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.7.0...backend-v1.8.0) (2026-11-17)
 
 
