@@ -30,8 +30,17 @@ type HubRepository interface {
 	UpdateLinkedAccount(ctx context.Context, userID, appID, connectedUID, connectedEmail, token string) error
 	DeleteLinkedApp(ctx context.Context, userID, appID string) error
 
-	SaveChatMessage(ctx context.Context, userID, role, content string, toolCalls, toolResponses interface{}) error
+	SaveChatMessage(ctx context.Context, userID, role, content string, sessionID *string, toolCalls, toolResponses interface{}) error
 	GetRecentChatMessages(ctx context.Context, userID string, limit int) ([]StoredChatMessage, error)
+
+	// Chat Session management
+	CreateChatSession(ctx context.Context, userID, title string) (*ChatSession, error)
+	GetChatSessions(ctx context.Context, userID string, limit, offset int) ([]ChatSession, error)
+	GetChatSessionByID(ctx context.Context, userID, sessionID string) (*ChatSession, error)
+	GetSessionMessages(ctx context.Context, sessionID string, limit int) ([]StoredChatMessage, error)
+	UpdateChatSessionTitle(ctx context.Context, userID, sessionID, title string) error
+	DeleteChatSession(ctx context.Context, userID, sessionID string) error
+	TouchChatSession(ctx context.Context, sessionID string) error
 }
 
 type hubRepository struct {
@@ -231,15 +240,15 @@ func (r *hubRepository) DeleteLinkedApp(ctx context.Context, userID, appID strin
 	})
 }
 
-func (r *hubRepository) SaveChatMessage(ctx context.Context, userID, role, content string, toolCalls, toolResponses interface{}) error {
+func (r *hubRepository) SaveChatMessage(ctx context.Context, userID, role, content string, sessionID *string, toolCalls, toolResponses interface{}) error {
 	query := `
-		INSERT INTO ai_chat_messages (hub_user_id, role, content, tool_calls, tool_responses, created_at)
-		VALUES ($1, $2, $3, $4, $5, NOW())
+		INSERT INTO ai_chat_messages (hub_user_id, session_id, role, content, tool_calls, tool_responses, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 	`
 	tcJSON, _ := json.Marshal(toolCalls)
 	trJSON, _ := json.Marshal(toolResponses)
 	return r.withTx(ctx, func(executor database.QueryerExecer) error {
-		_, err := executor.ExecContext(ctx, query, userID, role, content, tcJSON, trJSON)
+		_, err := executor.ExecContext(ctx, query, userID, sessionID, role, content, tcJSON, trJSON)
 		return err
 	})
 }
@@ -249,14 +258,14 @@ func (r *hubRepository) GetRecentChatMessages(ctx context.Context, userID string
 		limit = 10
 	}
 	query := `
-		SELECT id, hub_user_id, role, content, created_at
+		SELECT id, hub_user_id, session_id, role, content, created_at
 		FROM ai_chat_messages
 		WHERE hub_user_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2
 	`
 	var rows []StoredChatMessage
-	err := r.withTx(ctx, func(executor database.QueryerExecer) error {
+	err := r.withReadOnlyTx(ctx, func(executor database.QueryerExecer) error {
 		return executor.SelectContext(ctx, &rows, query, userID, limit)
 	})
 	if err != nil {
@@ -268,4 +277,126 @@ func (r *hubRepository) GetRecentChatMessages(ctx context.Context, userID string
 		rows[i], rows[j] = rows[j], rows[i]
 	}
 	return rows, nil
+}
+
+// ---- Chat Session CRUD ----
+
+func (r *hubRepository) CreateChatSession(ctx context.Context, userID, title string) (*ChatSession, error) {
+	query := `
+		INSERT INTO ai_chat_sessions (hub_user_id, title, created_at, updated_at)
+		VALUES ($1, $2, NOW(), NOW())
+		RETURNING id, hub_user_id, title, created_at, updated_at
+	`
+	var session ChatSession
+	err := r.withTx(ctx, func(executor database.QueryerExecer) error {
+		return executor.GetContext(ctx, &session, query, userID, title)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (r *hubRepository) GetChatSessions(ctx context.Context, userID string, limit, offset int) ([]ChatSession, error) {
+	if limit <= 0 {
+		limit = 30
+	}
+	query := `
+		SELECT
+			s.id, s.hub_user_id, s.title, s.created_at, s.updated_at,
+			COALESCE((
+				SELECT LEFT(m.content, 80)
+				FROM ai_chat_messages m
+				WHERE m.session_id = s.id
+				ORDER BY m.created_at DESC LIMIT 1
+			), '') AS last_preview,
+			COALESCE((
+				SELECT COUNT(*) FROM ai_chat_messages m WHERE m.session_id = s.id
+			), 0) AS msg_count
+		FROM ai_chat_sessions s
+		WHERE s.hub_user_id = $1
+		ORDER BY s.updated_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	var sessions []ChatSession
+	err := r.withReadOnlyTx(ctx, func(executor database.QueryerExecer) error {
+		return executor.SelectContext(ctx, &sessions, query, userID, limit, offset)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
+func (r *hubRepository) GetChatSessionByID(ctx context.Context, userID, sessionID string) (*ChatSession, error) {
+	query := `
+		SELECT
+			s.id, s.hub_user_id, s.title, s.created_at, s.updated_at,
+			'' AS last_preview, 0 AS msg_count
+		FROM ai_chat_sessions s
+		WHERE s.id = $1 AND s.hub_user_id = $2
+	`
+	var session ChatSession
+	err := r.withReadOnlyTx(ctx, func(executor database.QueryerExecer) error {
+		if err := executor.GetContext(ctx, &session, query, sessionID, userID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return errors.New("chat session not found")
+			}
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (r *hubRepository) GetSessionMessages(ctx context.Context, sessionID string, limit int) ([]StoredChatMessage, error) {
+	if limit <= 0 {
+		limit = 30
+	}
+	query := `
+		SELECT id, hub_user_id, session_id, role, content, created_at
+		FROM ai_chat_messages
+		WHERE session_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+	var rows []StoredChatMessage
+	err := r.withReadOnlyTx(ctx, func(executor database.QueryerExecer) error {
+		return executor.SelectContext(ctx, &rows, query, sessionID, limit)
+	})
+	if err != nil {
+		return nil, err
+	}
+	// Reverse to chronological (oldest first)
+	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
+		rows[i], rows[j] = rows[j], rows[i]
+	}
+	return rows, nil
+}
+
+func (r *hubRepository) UpdateChatSessionTitle(ctx context.Context, userID, sessionID, title string) error {
+	query := `UPDATE ai_chat_sessions SET title = $1 WHERE id = $2 AND hub_user_id = $3`
+	return r.withTx(ctx, func(executor database.QueryerExecer) error {
+		_, err := executor.ExecContext(ctx, query, title, sessionID, userID)
+		return err
+	})
+}
+
+func (r *hubRepository) DeleteChatSession(ctx context.Context, userID, sessionID string) error {
+	query := `DELETE FROM ai_chat_sessions WHERE id = $1 AND hub_user_id = $2`
+	return r.withTx(ctx, func(executor database.QueryerExecer) error {
+		_, err := executor.ExecContext(ctx, query, sessionID, userID)
+		return err
+	})
+}
+
+func (r *hubRepository) TouchChatSession(ctx context.Context, sessionID string) error {
+	query := `UPDATE ai_chat_sessions SET updated_at = NOW() WHERE id = $1`
+	return r.withTx(ctx, func(executor database.QueryerExecer) error {
+		_, err := executor.ExecContext(ctx, query, sessionID)
+		return err
+	})
 }

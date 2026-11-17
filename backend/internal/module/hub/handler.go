@@ -157,12 +157,75 @@ func (h *HubHandler) AIChat() fiber.Handler {
 			return response.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request: "+err.Error(), constants.CodeBadRequest)
 		}
 
-		resp, err := h.service.ProcessAIChat(c.UserContext(), userID, req.Message)
+		resp, err := h.service.ProcessAIChat(c.UserContext(), userID, req.Message, req.SessionID)
 		if err != nil {
 			return response.ErrorResponse(c, fiber.StatusInternalServerError, err.Error(), constants.CodeInternalError)
 		}
 
 		return response.SuccessResponse(c, resp, "Chat response processed successfully")
+	}
+}
+
+// GetChatSessions returns the user's conversation session history.
+func (h *HubHandler) GetChatSessions() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := authMiddleware.GetUserID(c)
+		if err != nil {
+			return response.ErrorResponse(c, fiber.StatusUnauthorized, constants.MsgUnauthorized, constants.CodeUnauthorized)
+		}
+
+		limit := c.QueryInt("limit", 30)
+		offset := c.QueryInt("offset", 0)
+
+		sessions, err := h.service.GetChatSessions(c.UserContext(), userID, limit, offset)
+		if err != nil {
+			return response.ErrorResponse(c, fiber.StatusInternalServerError, err.Error(), constants.CodeInternalError)
+		}
+
+		return response.SuccessResponse(c, sessions, "Chat sessions retrieved successfully")
+	}
+}
+
+// GetChatSessionDetail returns a session with all its messages.
+func (h *HubHandler) GetChatSessionDetail() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := authMiddleware.GetUserID(c)
+		if err != nil {
+			return response.ErrorResponse(c, fiber.StatusUnauthorized, constants.MsgUnauthorized, constants.CodeUnauthorized)
+		}
+
+		sessionID := c.Params("id")
+		if sessionID == "" {
+			return response.ErrorResponse(c, fiber.StatusBadRequest, "Session ID is required", constants.CodeBadRequest)
+		}
+
+		detail, err := h.service.GetChatSessionDetail(c.UserContext(), userID, sessionID)
+		if err != nil {
+			return response.ErrorResponse(c, fiber.StatusInternalServerError, err.Error(), constants.CodeInternalError)
+		}
+
+		return response.SuccessResponse(c, detail, "Chat session detail retrieved successfully")
+	}
+}
+
+// DeleteChatSession removes a conversation session and its messages.
+func (h *HubHandler) DeleteChatSession() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := authMiddleware.GetUserID(c)
+		if err != nil {
+			return response.ErrorResponse(c, fiber.StatusUnauthorized, constants.MsgUnauthorized, constants.CodeUnauthorized)
+		}
+
+		sessionID := c.Params("id")
+		if sessionID == "" {
+			return response.ErrorResponse(c, fiber.StatusBadRequest, "Session ID is required", constants.CodeBadRequest)
+		}
+
+		if err := h.service.DeleteChatSession(c.UserContext(), userID, sessionID); err != nil {
+			return response.ErrorResponse(c, fiber.StatusInternalServerError, err.Error(), constants.CodeInternalError)
+		}
+
+		return response.SuccessMessageResponse(c, "Chat session deleted successfully")
 	}
 }
 

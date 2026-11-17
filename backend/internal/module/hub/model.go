@@ -98,7 +98,8 @@ type DailyBriefingResponse struct {
 
 // AIChatRequest sends a user prompt to the Cross-App AI Agent.
 type AIChatRequest struct {
-	Message string `json:"message" validate:"required"`
+	Message   string `json:"message" validate:"required"`
+	SessionID string `json:"session_id,omitempty"`
 }
 
 // ToolCallDetail records a tool invoked by the AI model.
@@ -111,6 +112,7 @@ type ToolCallDetail struct {
 // AIChatResponse returns the model response, invoked tools, and actionable deep links.
 type AIChatResponse struct {
 	Reply       string            `json:"reply"`
+	SessionID   string            `json:"session_id"`
 	ToolCalls   []ToolCallDetail  `json:"tool_calls,omitempty"`
 	ActionLinks []SuggestedAction `json:"action_links,omitempty"`
 }
@@ -160,7 +162,25 @@ type MCPJSONRPCError struct {
 type StoredChatMessage struct {
 	ID        string    `json:"id" db:"id"`
 	HubUserID string    `json:"hub_user_id" db:"hub_user_id"`
+	SessionID *string   `json:"session_id,omitempty" db:"session_id"`
 	Role      string    `json:"role" db:"role"`
 	Content   string    `json:"content" db:"content"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+// ChatSession represents a conversation session grouping multiple chat messages.
+type ChatSession struct {
+	ID          string    `json:"id" db:"id"`
+	HubUserID   string    `json:"hub_user_id" db:"hub_user_id"`
+	Title       string    `json:"title" db:"title"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	LastPreview string    `json:"last_preview,omitempty" db:"last_preview"`
+	MsgCount    int       `json:"message_count" db:"msg_count"`
+}
+
+// ChatSessionDetail is a session with its full message history loaded.
+type ChatSessionDetail struct {
+	ChatSession
+	Messages []StoredChatMessage `json:"messages"`
 }

@@ -71,8 +71,40 @@ data class ToolCallDetail(
 @Serializable
 data class AIChatResponse(
     val reply: String = "",
+    @SerialName("session_id") val sessionId: String? = null,
     @SerialName("tool_calls") val toolCalls: List<ToolCallDetail> = emptyList(),
     @SerialName("action_links") val actionLinks: List<SuggestedAction> = emptyList()
+)
+
+@Serializable
+data class ChatSessionDto(
+    val id: String,
+    @SerialName("hub_user_id") val hubUserId: String,
+    val title: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("last_preview") val lastPreview: String = "",
+    @SerialName("message_count") val messageCount: Int = 0
+)
+
+@Serializable
+data class StoredChatMessageDto(
+    val id: String,
+    @SerialName("hub_user_id") val hubUserId: String,
+    @SerialName("session_id") val sessionId: String? = null,
+    val role: String,
+    val content: String,
+    @SerialName("created_at") val createdAt: String
+)
+
+@Serializable
+data class ChatSessionDetailDto(
+    val id: String,
+    @SerialName("hub_user_id") val hubUserId: String,
+    val title: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    val messages: List<StoredChatMessageDto> = emptyList()
 )
 
 data class ChatMessage(

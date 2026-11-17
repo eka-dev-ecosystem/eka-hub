@@ -10,11 +10,17 @@ public final class AiChatViewModel {
     public var linkedApps: [LinkedAppItem] = []
     public var errorBanner: String?
 
+    public var currentSessionId: String?
+    public var sessions: [ChatSessionItem] = []
+    public var isHistoryLoading: Bool = false
+    public var showHistorySheet: Bool = false
+
     private let apiClient = APIClient.shared
 
     public init() {
         Task {
             await loadLinkedApps()
+            await loadSessions()
         }
     }
 
@@ -23,6 +29,46 @@ public final class AiChatViewModel {
             linkedApps = try await apiClient.fetchLinkedApps()
         } catch {
             AppLogger.warn("Failed to load linked apps for chat header", category: .hub, metadata: ["error": error.localizedDescription])
+        }
+    }
+
+    public func loadSessions() async {
+        isHistoryLoading = true
+        do {
+            sessions = try await apiClient.fetchChatSessions()
+        } catch {
+            AppLogger.warn("Failed to load chat sessions", category: .hub, metadata: ["error": error.localizedDescription])
+        }
+        isHistoryLoading = false
+    }
+
+    public func selectSession(id: String) async {
+        guard !isSending else { return }
+        currentSessionId = id
+        isSending = true
+        do {
+            let detail = try await apiClient.fetchSessionDetail(id: id)
+            messages = detail.messages.map { stored in
+                ChatMessageItem(
+                    role: stored.role == "user" ? .user : .assistant,
+                    content: stored.content
+                )
+            }
+        } catch {
+            errorBanner = "Gagal memuat riwayat obrolan: \(error.localizedDescription)"
+        }
+        isSending = false
+    }
+
+    public func deleteSession(id: String) async {
+        do {
+            try await apiClient.deleteChatSession(id: id)
+            sessions.removeAll { $0.id == id }
+            if currentSessionId == id {
+                startNewChat()
+            }
+        } catch {
+            AppLogger.warn("Failed to delete chat session", category: .hub, metadata: ["error": error.localizedDescription])
         }
     }
 
@@ -40,6 +86,7 @@ public final class AiChatViewModel {
 
     public func startNewChat() {
         guard !isSending else { return }
+        currentSessionId = nil
         messages.removeAll()
         errorBanner = nil
     }
@@ -51,8 +98,12 @@ public final class AiChatViewModel {
         isSending = true
 
         do {
-            let response = try await apiClient.sendChat(message: prompt)
+            let response = try await apiClient.sendChat(message: prompt, sessionId: currentSessionId)
             isSending = false
+
+            if let sid = response.sessionId, !sid.isEmpty {
+                currentSessionId = sid
+            }
 
             // Progressive streaming typewriter for live, real-time response feel
             let streamingMsg = ChatMessageItem(
@@ -77,6 +128,7 @@ public final class AiChatViewModel {
                 messages[index].content = response.reply
             }
             await loadLinkedApps()
+            await loadSessions()
         } catch {
             isSending = false
             errorBanner = error.localizedDescription

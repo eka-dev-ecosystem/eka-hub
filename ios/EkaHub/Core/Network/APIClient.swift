@@ -137,8 +137,20 @@ public actor APIClient {
         let _: EmptyResponse? = try await request("/hub/apps/\(appId)", method: "DELETE")
     }
 
-    public func sendChat(message: String) async throws -> AIChatResponse {
-        try await request("/hub/chat", method: "POST", body: AIChatRequest(message: message))
+    public func sendChat(message: String, sessionId: String? = nil) async throws -> AIChatResponse {
+        try await request("/hub/chat", method: "POST", body: AIChatRequest(message: message, sessionId: sessionId))
+    }
+
+    public func fetchChatSessions(limit: Int = 30, offset: Int = 0) async throws -> [ChatSessionItem] {
+        try await request("/hub/chat/sessions?limit=\(limit)&offset=\(offset)")
+    }
+
+    public func fetchSessionDetail(id: String) async throws -> ChatSessionDetail {
+        try await request("/hub/chat/sessions/\(id)")
+    }
+
+    public func deleteChatSession(id: String) async throws {
+        let _: EmptyResponse? = try await request("/hub/chat/sessions/\(id)", method: "DELETE")
     }
 
     // MARK: - Session Persistence

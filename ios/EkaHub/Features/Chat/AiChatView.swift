@@ -98,12 +98,47 @@ public struct AiChatView: View {
                 await viewModel.loadLinkedApps()
             }
         }
+        .sheet(isPresented: $viewModel.showHistorySheet) {
+            ChatHistorySheetView(
+                sessions: viewModel.sessions,
+                currentSessionId: viewModel.currentSessionId,
+                isLoading: viewModel.isHistoryLoading,
+                onSelectSession: { id in
+                    Task {
+                        await viewModel.selectSession(id: id)
+                    }
+                },
+                onNewChat: {
+                    viewModel.startNewChat()
+                },
+                onDeleteSession: { id in
+                    Task {
+                        await viewModel.deleteSession(id: id)
+                    }
+                }
+            )
+        }
     }
 
     // MARK: - Top Navigation Header
 
     private var geminiTopBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
+            Button(action: {
+                Task {
+                    await viewModel.loadSessions()
+                    viewModel.showHistorySheet = true
+                }
+            }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
             HStack(spacing: 8) {
                 GeminiSparkleView(size: 18, animate: false)
                 VStack(alignment: .leading, spacing: 1) {
@@ -145,21 +180,19 @@ public struct AiChatView: View {
             }
             .buttonStyle(.plain)
 
-            if !viewModel.messages.isEmpty {
-                Button(action: {
-                    withAnimation {
-                        viewModel.startNewChat()
-                    }
-                }) {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 34, height: 34)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Circle())
+            Button(action: {
+                withAnimation {
+                    viewModel.startNewChat()
                 }
-                .buttonStyle(.plain)
+            }) {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -423,10 +456,7 @@ private struct GeminiMessageRow: View {
                         }
                     }
 
-                    Text(LocalizedStringKey(message.content))
-                        .font(.system(size: 15))
-                        .foregroundColor(AppColors.textPrimary.opacity(0.95))
-                        .lineSpacing(4)
+                    GeminiMarkdownView(content: message.content)
                         .textSelection(.enabled)
 
                     if let actions = message.actionLinks, !actions.isEmpty {
@@ -607,6 +637,489 @@ public struct ThinkingIndicatorView: View {
             }
             withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) {
                 shimmerPhase = 1.0
+            }
+        }
+    }
+}
+
+// MARK: - Markdown Block Data Model
+
+public enum MarkdownContentBlock: Identifiable, Sendable {
+    case code(id: UUID = UUID(), language: String, code: String)
+    case heading(id: UUID = UUID(), level: Int, text: String)
+    case bullet(id: UUID = UUID(), text: String)
+    case numbered(id: UUID = UUID(), number: String, text: String)
+    case paragraph(id: UUID = UUID(), text: String)
+
+    public var id: UUID {
+        switch self {
+        case .code(let id, _, _): return id
+        case .heading(let id, _, _): return id
+        case .bullet(let id, _): return id
+        case .numbered(let id, _, _): return id
+        case .paragraph(let id, _): return id
+        }
+    }
+}
+
+// MARK: - Gemini-Grade Markdown View
+
+public struct GeminiMarkdownView: View {
+    public let content: String
+    private let blocks: [MarkdownContentBlock]
+
+    public init(content: String) {
+        self.content = content
+        self.blocks = GeminiMarkdownParser.parse(content)
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(blocks) { block in
+                switch block {
+                case .code(_, let language, let code):
+                    GeminiCodeBlockCard(language: language, code: code)
+
+                case .heading(_, let level, let text):
+                    let (fontSize, weight): (CGFloat, Font.Weight) = {
+                        switch level {
+                        case 1: return (18, .bold)
+                        case 2: return (16, .semibold)
+                        default: return (14, .semibold)
+                        }
+                    }()
+                    Text(GeminiMarkdownParser.inlineMarkdown(text))
+                        .font(.system(size: fontSize, weight: weight))
+                        .foregroundColor(.white)
+                        .padding(.top, 4)
+                        .padding(.bottom, 2)
+
+                case .bullet(_, let text):
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(AppColors.geminiCyan)
+                        Text(GeminiMarkdownParser.inlineMarkdown(text))
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.textPrimary.opacity(0.95))
+                            .lineSpacing(3)
+                    }
+                    .padding(.leading, 4)
+
+                case .numbered(_, let number, let text):
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\(number).")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(AppColors.geminiBlue)
+                        Text(GeminiMarkdownParser.inlineMarkdown(text))
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.textPrimary.opacity(0.95))
+                            .lineSpacing(3)
+                    }
+                    .padding(.leading, 4)
+
+                case .paragraph(_, let text):
+                    Text(GeminiMarkdownParser.inlineMarkdown(text))
+                        .font(.system(size: 14))
+                        .foregroundColor(AppColors.textPrimary.opacity(0.95))
+                        .lineSpacing(3)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Gemini Code Block Card
+
+public struct GeminiCodeBlockCard: View {
+    public let language: String
+    public let code: String
+    @State private var copied: Bool = false
+
+    private var displayLanguage: String {
+        language.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "CODE" : language.uppercased()
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header Bar
+            HStack {
+                Text(displayLanguage)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(Color(hex: "94A3B8"))
+
+                Spacer()
+
+                Button(action: copyToClipboard) {
+                    HStack(spacing: 4) {
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(copied ? Color(hex: "4ADE80") : Color(hex: "94A3B8"))
+
+                        Text(copied ? "Tersalin!" : "Salin kode")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(copied ? Color(hex: "4ADE80") : Color(hex: "94A3B8"))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.04))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color(hex: "131722"))
+
+            // Code Body with horizontal scrolling
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(GeminiSyntaxHighlighter.highlight(code))
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(Color(hex: "F1F5F9"))
+                    .lineSpacing(4)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+            }
+            .background(Color(hex: "0B0E17"))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(hex: "232838"), lineWidth: 1)
+        )
+    }
+
+    private func copyToClipboard() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = code
+        #endif
+        withAnimation(.easeInOut(duration: 0.2)) {
+            copied = true
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                copied = false
+            }
+        }
+    }
+}
+
+// MARK: - Markdown Parser
+
+public enum GeminiMarkdownParser {
+    public static func parse(_ text: String) -> [MarkdownContentBlock] {
+        var blocks: [MarkdownContentBlock] = []
+        let lines = text.components(separatedBy: "\n")
+        var i = 0
+
+        while i < lines.count {
+            let line = lines[i]
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Code Block: ```language
+            if trimmed.hasPrefix("```") {
+                let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                var codeLines: [String] = []
+                i += 1
+                while i < lines.count && !lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                    codeLines.append(lines[i])
+                    i += 1
+                }
+                if i < lines.count && lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                    i += 1
+                }
+                blocks.append(.code(language: lang, code: codeLines.joined(separator: "\n")))
+                continue
+            }
+
+            // Headings: # H1, ## H2, ### H3
+            if trimmed.hasPrefix("#") {
+                var level = 0
+                for char in trimmed {
+                    if char == "#" { level += 1 } else { break }
+                }
+                let headingText = String(trimmed.dropFirst(level)).trimmingCharacters(in: .whitespaces)
+                if !headingText.isEmpty {
+                    blocks.append(.heading(level: min(max(level, 1), 4), text: headingText))
+                    i += 1
+                    continue
+                }
+            }
+
+            // Bullet items: - item or * item
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                blocks.append(.bullet(text: String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)))
+                i += 1
+                continue
+            }
+
+            // Numbered items: 1. item, 2. item
+            if let match = matchNumberedList(trimmed) {
+                blocks.append(.numbered(number: match.number, text: match.text))
+                i += 1
+                continue
+            }
+
+            // Regular paragraph
+            if !trimmed.isEmpty {
+                blocks.append(.paragraph(text: line))
+            }
+            i += 1
+        }
+
+        return blocks
+    }
+
+    private static func matchNumberedList(_ text: String) -> (number: String, text: String)? {
+        guard let dotIndex = text.firstIndex(of: ".") else { return nil }
+        let prefix = text[..<dotIndex]
+        guard let num = Int(prefix) else { return nil }
+        let remainder = text[text.index(after: dotIndex)...].trimmingCharacters(in: .whitespaces)
+        return (number: "\(num)", text: remainder)
+    }
+
+    public static func inlineMarkdown(_ text: String) -> AttributedString {
+        if let attr = try? AttributedString(markdown: text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            return attr
+        }
+        return AttributedString(text)
+    }
+}
+
+// MARK: - Lexical Syntax Highlighter
+
+public enum GeminiSyntaxHighlighter {
+    public static func highlight(_ code: String) -> AttributedString {
+        var attributed = AttributedString(code)
+
+        let keywordColor = Color(hex: "C084FC")
+        let stringColor = Color(hex: "86EFAC")
+        let numberColor = Color(hex: "FDBA74")
+        let commentColor = Color(hex: "94A3B8")
+        let typeColor = Color(hex: "38BDF8")
+
+        let keywords: Set<String> = [
+            "func", "let", "var", "struct", "class", "enum", "protocol", "extension", "guard",
+            "if", "else", "switch", "case", "default", "return", "import", "package", "public",
+            "private", "async", "await", "throw", "throws", "try", "catch", "defer", "while",
+            "for", "in", "type", "const", "def", "lambda", "with", "yield", "SELECT", "FROM",
+            "WHERE", "JOIN", "ORDER", "BY", "GROUP", "LIMIT", "INSERT", "INTO", "UPDATE", "SET",
+            "DELETE", "AND", "OR", "NOT", "fun", "val", "override"
+        ]
+
+        let types: Set<String> = [
+            "String", "Int", "Double", "Float", "Bool", "Void", "UUID", "Date", "URL",
+            "string", "int", "int64", "bool", "float64", "error", "byte",
+            "true", "false", "nil", "null", "None"
+        ]
+
+        let nsCode = code as NSString
+        let fullRange = NSRange(location: 0, length: nsCode.length)
+
+        if let wordRegex = try? NSRegularExpression(pattern: "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b") {
+            let matches = wordRegex.matches(in: code, range: fullRange)
+            for match in matches {
+                let word = nsCode.substring(with: match.range)
+                if keywords.contains(word) {
+                    if let range = Range(match.range, in: code),
+                       let attrRange = Range(range, in: attributed) {
+                        attributed[attrRange].foregroundColor = keywordColor
+                        attributed[attrRange].inlinePresentationIntent = .stronglyEmphasized
+                    }
+                } else if types.contains(word) {
+                    if let range = Range(match.range, in: code),
+                       let attrRange = Range(range, in: attributed) {
+                        attributed[attrRange].foregroundColor = typeColor
+                    }
+                }
+            }
+        }
+
+        if let strRegex = try? NSRegularExpression(pattern: "\"(\\\\.|[^\"])*\"|'(\\\\.|[^'])*'") {
+            let matches = strRegex.matches(in: code, range: fullRange)
+            for match in matches {
+                if let range = Range(match.range, in: code),
+                   let attrRange = Range(range, in: attributed) {
+                    attributed[attrRange].foregroundColor = stringColor
+                }
+            }
+        }
+
+        if let numRegex = try? NSRegularExpression(pattern: "\\b\\d+(\\.\\d+)?\\b") {
+            let matches = numRegex.matches(in: code, range: fullRange)
+            for match in matches {
+                if let range = Range(match.range, in: code),
+                   let attrRange = Range(range, in: attributed) {
+                    attributed[attrRange].foregroundColor = numberColor
+                }
+            }
+        }
+
+        if let commentRegex = try? NSRegularExpression(pattern: "//.*|#.*|/\\*[\\s\\S]*?\\*/") {
+            let matches = commentRegex.matches(in: code, range: fullRange)
+            for match in matches {
+                if let range = Range(match.range, in: code),
+                   let attrRange = Range(range, in: attributed) {
+                    attributed[attrRange].foregroundColor = commentColor
+                    attributed[attrRange].font = .system(size: 13, design: .monospaced).italic()
+                }
+            }
+        }
+
+        return attributed
+    }
+}
+
+// MARK: - Chat History Sheet View
+
+public struct ChatHistorySheetView: View {
+    public let sessions: [ChatSessionItem]
+    public let currentSessionId: String?
+    public let isLoading: Bool
+    public let onSelectSession: (String) -> Void
+    public let onNewChat: () -> Void
+    public let onDeleteSession: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    public init(
+        sessions: [ChatSessionItem],
+        currentSessionId: String?,
+        isLoading: Bool,
+        onSelectSession: @escaping (String) -> Void,
+        onNewChat: @escaping () -> Void,
+        onDeleteSession: @escaping (String) -> Void
+    ) {
+        self.sessions = sessions
+        self.currentSessionId = currentSessionId
+        self.isLoading = isLoading
+        self.onSelectSession = onSelectSession
+        self.onNewChat = onNewChat
+        self.onDeleteSession = onDeleteSession
+    }
+
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                AppColors.backgroundBase.ignoresSafeArea()
+
+                VStack(spacing: 16) {
+                    Button(action: {
+                        onNewChat()
+                        dismiss()
+                    }) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppColors.geminiBlue.opacity(0.2))
+                                    .frame(width: 34, height: 34)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(AppColors.geminiCyan)
+                            }
+
+                            Text("Mulai Obrolan Baru")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+
+                            Spacer()
+
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.textMuted)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(AppColors.surfaceElevated)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(AppColors.geminiBlue.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                    if sessions.isEmpty {
+                        Spacer()
+                        VStack(spacing: 10) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 36))
+                                .foregroundColor(AppColors.textMuted.opacity(0.6))
+                            Text(isLoading ? "Memuat riwayat obrolan..." : "Belum ada riwayat percakapan")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        Spacer()
+                    } else {
+                        List {
+                            ForEach(sessions) { session in
+                                let isSelected = session.id == currentSessionId
+                                Button(action: {
+                                    onSelectSession(session.id)
+                                    dismiss()
+                                }) {
+                                    HStack(alignment: .center, spacing: 12) {
+                                        Image(systemName: isSelected ? "bubble.left.fill" : "bubble.left")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(isSelected ? AppColors.geminiCyan : AppColors.textMuted)
+
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(session.title)
+                                                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                                                .foregroundColor(isSelected ? .white : AppColors.textPrimary)
+                                                .lineLimit(1)
+
+                                            if !session.lastPreview.isEmpty {
+                                                Text(session.lastPreview)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(AppColors.textMuted)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+
+                                        Spacer()
+
+                                        if isSelected {
+                                            Circle()
+                                                .fill(AppColors.geminiCyan)
+                                                .frame(width: 7, height: 7)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .listRowBackground(
+                                    isSelected
+                                        ? AppColors.surfaceElevated.opacity(0.9)
+                                        : Color.clear
+                                )
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        onDeleteSession(session.id)
+                                    } label: {
+                                        Label("Hapus", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                    }
+                }
+            }
+            .navigationTitle("Riwayat Obrolan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Selesai") {
+                        dismiss()
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppColors.geminiCyan)
+                }
             }
         }
     }

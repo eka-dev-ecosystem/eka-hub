@@ -12,7 +12,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +38,11 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
     val context = LocalContext.current
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val currentSessionId by viewModel.currentSessionId.collectAsState()
+    val sessions by viewModel.sessions.collectAsState()
+    val isHistoryLoading by viewModel.isHistoryLoading.collectAsState()
+    var showHistorySheet by remember { mutableStateOf(false) }
+
     var inputQuery by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -47,11 +54,79 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
         }
     }
 
+    if (showHistorySheet) {
+        ChatHistorySheet(
+            sessions = sessions,
+            currentSessionId = currentSessionId,
+            isLoading = isHistoryLoading,
+            onSelectSession = { sid -> viewModel.selectSession(sid) },
+            onNewChat = { viewModel.startNewChat() },
+            onDeleteSession = { sid -> viewModel.deleteSession(sid) },
+            onDismiss = { showHistorySheet = false }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(HubDarkBg)
     ) {
+        // Gemini-Grade Top Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(HubDarkCard.copy(alpha = 0.95f))
+                .border(1.dp, HubDarkBorder, RoundedCornerShape(0.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    viewModel.loadSessions()
+                    showHistorySheet = true
+                },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Riwayat Obrolan",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = HubCyan,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Eka-Hub AI",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+
+            IconButton(
+                onClick = { viewModel.startNewChat() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Chat Baru",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -75,13 +150,22 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                             RoundedCornerShape(16.dp)
                         )
                     ) {
-                        Text(
-                            text = msg.content,
-                            fontSize = 14.sp,
-                            color = Color.White,
-                            lineHeight = 21.sp,
-                            modifier = Modifier.padding(14.dp)
-                        )
+                        if (isUser) {
+                            Text(
+                                text = msg.content,
+                                fontSize = 14.sp,
+                                color = Color.White,
+                                lineHeight = 21.sp,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        } else {
+                            Box(modifier = Modifier.padding(14.dp)) {
+                                GeminiMarkdownContent(
+                                    content = msg.content,
+                                    textColor = Color(0xFFF1F5F9)
+                                )
+                            }
+                        }
                     }
 
                     if (msg.actions.isNotEmpty()) {

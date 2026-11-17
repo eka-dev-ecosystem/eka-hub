@@ -100,7 +100,7 @@ func (m *mockHubRepo) DeleteLinkedApp(ctx context.Context, userID, appID string)
 	return nil
 }
 
-func (m *mockHubRepo) SaveChatMessage(ctx context.Context, userID, role, content string, toolCalls, toolResponses interface{}) error {
+func (m *mockHubRepo) SaveChatMessage(ctx context.Context, userID, role, content string, sessionID *string, toolCalls, toolResponses interface{}) error {
 	return nil
 }
 
@@ -109,6 +109,37 @@ func (m *mockHubRepo) GetRecentChatMessages(ctx context.Context, userID string, 
 		{ID: "1", Role: "user", Content: "Siapa nama saya?"},
 		{ID: "2", Role: "assistant", Content: "Nama Anda Eka."},
 	}, nil
+}
+
+func (m *mockHubRepo) CreateChatSession(ctx context.Context, userID, title string) (*ChatSession, error) {
+	return &ChatSession{ID: "session-1", HubUserID: userID, Title: title}, nil
+}
+
+func (m *mockHubRepo) GetChatSessions(ctx context.Context, userID string, limit, offset int) ([]ChatSession, error) {
+	return []ChatSession{{ID: "session-1", HubUserID: userID, Title: "Test session"}}, nil
+}
+
+func (m *mockHubRepo) GetChatSessionByID(ctx context.Context, userID, sessionID string) (*ChatSession, error) {
+	return &ChatSession{ID: sessionID, HubUserID: userID, Title: "Test session"}, nil
+}
+
+func (m *mockHubRepo) GetSessionMessages(ctx context.Context, sessionID string, limit int) ([]StoredChatMessage, error) {
+	return []StoredChatMessage{
+		{ID: "1", Role: "user", Content: "Siapa nama saya?"},
+		{ID: "2", Role: "assistant", Content: "Nama Anda Eka."},
+	}, nil
+}
+
+func (m *mockHubRepo) UpdateChatSessionTitle(ctx context.Context, userID, sessionID, title string) error {
+	return nil
+}
+
+func (m *mockHubRepo) DeleteChatSession(ctx context.Context, userID, sessionID string) error {
+	return nil
+}
+
+func (m *mockHubRepo) TouchChatSession(ctx context.Context, sessionID string) error {
+	return nil
 }
 
 func TestInitiateLink(t *testing.T) {
@@ -408,7 +439,7 @@ func TestProcessAIChat_PureAIFunctionCalling(t *testing.T) {
 
 	// Case 1: When GEMINI_API_KEY is not set, must return error (no local heuristic fallback)
 	_ = os.Unsetenv("GEMINI_API_KEY")
-	_, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "buat task review PR")
+	_, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "buat task review PR", "")
 	if err == nil {
 		t.Fatalf("expected error when GEMINI_API_KEY is not configured, got nil")
 	}
@@ -495,7 +526,7 @@ func TestProcessAIChat_PureAIFunctionCalling(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key-123")
 	t.Setenv("GEMINI_BASE_URL", mockGeminiServer.URL)
 
-	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Buatkan task review PR")
+	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Buatkan task review PR", "")
 	if err != nil {
 		t.Fatalf("expected no error from Gemini function calling, got %v", err)
 	}
@@ -599,7 +630,7 @@ func TestProcessAIChat_MultiToolOrchestration(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key-123")
 	t.Setenv("GEMINI_BASE_URL", mockGeminiServer.URL)
 
-	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Berikan ringkasan keuangan dan tugas hari ini")
+	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Berikan ringkasan keuangan dan tugas hari ini", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -644,5 +675,33 @@ func TestBuildGeminiConversationContents(t *testing.T) {
 	parts, ok := contents[2]["parts"].([]map[string]interface{})
 	if !ok || parts[0]["text"] != currentPrompt {
 		t.Errorf("expected turn 2 to contain currentPrompt, got %v", parts)
+	}
+}
+
+func TestChatSessionLifecycle(t *testing.T) {
+	repo := newMockHubRepo()
+	service := NewHubService(repo, &mockTransactor{})
+
+	// 1. GetChatSessions
+	sessions, err := service.GetChatSessions(context.Background(), "user-uuid-1", 10, 0)
+	if err != nil {
+		t.Fatalf("expected no error getting sessions, got %v", err)
+	}
+	if len(sessions) == 0 {
+		t.Fatalf("expected at least 1 session")
+	}
+
+	// 2. GetChatSessionDetail
+	detail, err := service.GetChatSessionDetail(context.Background(), "user-uuid-1", "session-1")
+	if err != nil {
+		t.Fatalf("expected no error getting session detail, got %v", err)
+	}
+	if detail.ID != "session-1" || len(detail.Messages) != 2 {
+		t.Errorf("unexpected session detail: %+v", detail)
+	}
+
+	// 3. DeleteChatSession
+	if err := service.DeleteChatSession(context.Background(), "user-uuid-1", "session-1"); err != nil {
+		t.Fatalf("expected no error deleting session, got %v", err)
 	}
 }

@@ -25,7 +25,12 @@ type HubService interface {
 
 	SyncAllSummaries(ctx context.Context, userID string) ([]AppSummaryResponse, error)
 	GetDailyBriefing(ctx context.Context, userID string) (*DailyBriefingResponse, error)
-	ProcessAIChat(ctx context.Context, userID, userMessage string) (*AIChatResponse, error)
+	ProcessAIChat(ctx context.Context, userID, userMessage, sessionID string) (*AIChatResponse, error)
+
+	// Chat Session management
+	GetChatSessions(ctx context.Context, userID string, limit, offset int) ([]ChatSession, error)
+	GetChatSessionDetail(ctx context.Context, userID, sessionID string) (*ChatSessionDetail, error)
+	DeleteChatSession(ctx context.Context, userID, sessionID string) error
 
 	ExecuteTool(ctx context.Context, userID string, req *ExecuteToolRequest) (*ToolExecutionResult, error)
 	GetAvailableTools(ctx context.Context, userID string) (*HubToolsListResponse, error)
@@ -722,7 +727,7 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 	}, nil
 }
 
-func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage string) (*AIChatResponse, error) {
+func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage, sessionID string) (*AIChatResponse, error) {
 	summaries, _ := s.SyncAllSummaries(ctx, userID)
 
 	apiKey := os.Getenv("GEMINI_API_KEY")
@@ -730,17 +735,75 @@ func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage stri
 		return nil, errors.New("GEMINI_API_KEY is not configured on the server")
 	}
 
-	recentMessages, _ := s.repo.GetRecentChatMessages(ctx, userID, 10)
+	// Session management: create new session if none provided
+	var activeSessionID *string
+	if sessionID == "" {
+		// Generate a smart title from the first ~60 chars of the prompt
+		title := userMessage
+		if len(title) > 60 {
+			title = title[:60] + "..."
+		}
+		session, err := s.repo.CreateChatSession(ctx, userID, title)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create chat session: %w", err)
+		}
+		activeSessionID = &session.ID
+	} else {
+		// Validate session belongs to user
+		_, err := s.repo.GetChatSessionByID(ctx, userID, sessionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid session: %w", err)
+		}
+		activeSessionID = &sessionID
+	}
 
-	res, err := s.callGeminiWithTools(ctx, apiKey, userID, userMessage, summaries, recentMessages)
+	// Load session-scoped history (up to 30 messages for deeper context)
+	var history []StoredChatMessage
+	if activeSessionID != nil {
+		history, _ = s.repo.GetSessionMessages(ctx, *activeSessionID, 30)
+	}
+
+	res, err := s.callGeminiWithTools(ctx, apiKey, userID, userMessage, summaries, history)
 	if err != nil {
 		return nil, fmt.Errorf("AI processing error: %w", err)
 	}
 
-	_ = s.repo.SaveChatMessage(ctx, userID, "user", userMessage, nil, nil)
-	_ = s.repo.SaveChatMessage(ctx, userID, "assistant", res.Reply, res.ToolCalls, nil)
+	// Persist messages with session association
+	_ = s.repo.SaveChatMessage(ctx, userID, "user", userMessage, activeSessionID, nil, nil)
+	_ = s.repo.SaveChatMessage(ctx, userID, "assistant", res.Reply, activeSessionID, res.ToolCalls, nil)
 
+	// Touch session to update its updated_at timestamp
+	if activeSessionID != nil {
+		_ = s.repo.TouchChatSession(ctx, *activeSessionID)
+	}
+
+	res.SessionID = *activeSessionID
 	return res, nil
+}
+
+// ---- Chat Session Service Methods ----
+
+func (s *hubService) GetChatSessions(ctx context.Context, userID string, limit, offset int) ([]ChatSession, error) {
+	return s.repo.GetChatSessions(ctx, userID, limit, offset)
+}
+
+func (s *hubService) GetChatSessionDetail(ctx context.Context, userID, sessionID string) (*ChatSessionDetail, error) {
+	session, err := s.repo.GetChatSessionByID(ctx, userID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	messages, err := s.repo.GetSessionMessages(ctx, sessionID, 100)
+	if err != nil {
+		return nil, err
+	}
+	return &ChatSessionDetail{
+		ChatSession: *session,
+		Messages:    messages,
+	}, nil
+}
+
+func (s *hubService) DeleteChatSession(ctx context.Context, userID, sessionID string) error {
+	return s.repo.DeleteChatSession(ctx, userID, sessionID)
 }
 
 func (s *hubService) executeGeminiRequestWithRetry(ctx context.Context, apiKey, preferredModel string, payload map[string]interface{}) ([]byte, error) {

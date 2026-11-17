@@ -299,17 +299,86 @@ public struct ToolCallDetail: Codable, Sendable, Equatable {
 
 public struct AIChatRequest: Codable, Sendable {
     public let message: String
+    public let sessionId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case message
+        case sessionId = "session_id"
+    }
+
+    public init(message: String, sessionId: String? = nil) {
+        self.message = message
+        self.sessionId = sessionId
+    }
 }
 
 public struct AIChatResponse: Codable, Sendable {
     public let reply: String
+    public let sessionId: String?
     public let toolCalls: [ToolCallDetail]?
     public let actionLinks: [SuggestedAction]?
 
     enum CodingKeys: String, CodingKey {
         case reply
+        case sessionId = "session_id"
         case toolCalls = "tool_calls"
         case actionLinks = "action_links"
+    }
+}
+
+public struct ChatSessionItem: Identifiable, Codable, Sendable {
+    public let id: String
+    public let hubUserId: String
+    public let title: String
+    public let createdAt: String
+    public let updatedAt: String
+    public let lastPreview: String
+    public let messageCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case hubUserId = "hub_user_id"
+        case title
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case lastPreview = "last_preview"
+        case messageCount = "message_count"
+    }
+}
+
+public struct StoredChatMessageItem: Identifiable, Codable, Sendable {
+    public let id: String
+    public let hubUserId: String
+    public let sessionId: String?
+    public let role: String
+    public let content: String
+    public let createdAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case hubUserId = "hub_user_id"
+        case sessionId = "session_id"
+        case role
+        case content
+        case createdAt = "created_at"
+    }
+}
+
+public struct ChatSessionDetail: Identifiable, Codable, Sendable {
+    public let id: String
+    public let hubUserId: String
+    public let title: String
+    public let createdAt: String
+    public let updatedAt: String
+    public let messages: [StoredChatMessageItem]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case hubUserId = "hub_user_id"
+        case title
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case messages
     }
 }
 

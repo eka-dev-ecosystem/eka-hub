@@ -149,6 +149,9 @@ func (r *Router) registerHub(api fiber.Router) {
 	protected.Get("/summary", handler.GetSummary())
 	protected.Get("/briefing", handler.GetDailyBriefing())
 	protected.Post("/chat", handler.AIChat())
+	protected.Get("/chat/sessions", handler.GetChatSessions())
+	protected.Get("/chat/sessions/:id", handler.GetChatSessionDetail())
+	protected.Delete("/chat/sessions/:id", handler.DeleteChatSession())
 	protected.Get("/tools", handler.GetAvailableTools())
 	protected.Post("/tools/call", handler.ExecuteTool())
 }

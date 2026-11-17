@@ -22,6 +22,15 @@ interface HubApiService {
     @POST("hub/chat")
     suspend fun sendChatMessage(@Body req: Map<String, String>): BaseResponse<AIChatResponse>
 
+    @GET("hub/chat/sessions")
+    suspend fun getChatSessions(): BaseResponse<List<ChatSessionDto>>
+
+    @GET("hub/chat/sessions/{id}")
+    suspend fun getChatSessionDetail(@Path("id") id: String): BaseResponse<ChatSessionDetailDto>
+
+    @DELETE("hub/chat/sessions/{id}")
+    suspend fun deleteChatSession(@Path("id") id: String): BaseResponse<Unit>
+
     @POST("hub/link/initiate")
     suspend fun initiateLink(@Body req: Map<String, String>): BaseResponse<Map<String, String>>
 }
