@@ -653,7 +653,14 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 	// Fallback to direct REST endpoint: POST /api/v1/transactions
 	if toolName == "create_transaction" {
 		restEndpoint := fmt.Sprintf("%s/api/v1/transactions", strings.TrimRight(app.APIBaseURL, "/"))
-		restBytes, _ := json.Marshal(args)
+		restArgs := make(map[string]interface{})
+		for k, v := range args {
+			restArgs[k] = v
+		}
+		if val, ok := args["linked_income_id"]; ok && val != nil {
+			restArgs["linkedIncomeId"] = val
+		}
+		restBytes, _ := json.Marshal(restArgs)
 		restReq, err := http.NewRequestWithContext(ctx, http.MethodPost, restEndpoint, bytes.NewReader(restBytes))
 		if err != nil {
 			return nil, err
@@ -965,6 +972,10 @@ Users MUST always be shown a clear draft confirmation first before any new trans
 1. INITIAL TRANSACTION REQUEST (e.g. 'catat pengeluaran kopi 35000', 'beli makan 25000', 'catat bensin 50000', 'tambah transaksi'):
 - DO NOT invoke 'create_transaction' yet!
 - Check existing categories from Connected Apps Live Context below. Match against existing user categories with semantic intelligence (e.g. if the user has 'Food and Drink' or 'Food & Drink', use that; DO NOT invent 'Makanan & Minuman'; if user has 'Transport', use 'Transport').
+- Check active income sources in Connected Apps Live Context under F-Tracker ('active_incomes'):
+  * If the user mentions or asks to deduct from a specific income (e.g. 'potong dari gaji', 'pakai bonus', 'dari freelance'), match it to an income in 'active_incomes'.
+  * If the user does not specify, you may recommend the most relevant active income (e.g. 'Gaji Bulanan') or list available active incomes for them to choose from.
+  * If no income source is specified or available, set Sumber Dana as 'Belum ditentukan (Pengeluaran Umum)'.
 - Formulate a clear, structured draft proposal and ask the user to confirm:
   ### 📝 Konfirmasi Pencatatan Transaksi
   Saya telah menyiapkan rincian transaksi untuk dicatat ke **F-Tracker**:
@@ -973,9 +984,10 @@ Users MUST always be shown a clear draft confirmation first before any new trans
   - **Nominal**: Rp [nominal terformat, contoh: 25.000]
   - **Keterangan**: [deskripsi transaksi]
   - **Kategori Rekomendasi**: [nama kategori yang cocok dari F-Tracker]
+  - **Sumber Dana / Potong Dari**: [Nama Pemasukan (Sisa: Rp xx.xxx) atau 'Belum ditentukan (Pengeluaran Umum)']
   - **Tanggal**: [tanggal hari ini %s / yang diminta]
 
-  Apakah rincian dan kategorinya sudah sesuai? Balas **"Ya, catat"** untuk menyimpan, atau beri tahu jika ingin mengganti kategori atau nominalnya.
+  Apakah rincian dan kategorinya sudah sesuai? Balas **"Ya, catat"** untuk menyimpan, atau beri tahu jika ingin mengganti kategori, nominal, atau sumber dananya.
 
 2. INITIAL TASK REQUEST (e.g. 'buat task belajar go', 'tambah todo beli susu', 'tolong bikin tugas meeting'):
 - DO NOT invoke 'create_task' yet!
@@ -993,7 +1005,7 @@ Users MUST always be shown a clear draft confirmation first before any new trans
 - You MUST ONLY invoke 'create_transaction' or 'create_task' when:
   a) The user explicitly CONFIRMS a previously proposed draft in the conversation history (e.g. user says: 'ya', 'catat', 'oke', 'buatkan', 'simpan', 'lanjutkan', 'eksekusi', 'yes', 'confirm', 'gas', 'sudah sesuai', 'setuju', 'silakan'), OR
   b) The user explicitly specifies direct creation in their initial prompt (e.g. 'langsung catat sekarang tanpa konfirmasi', 'force create').
-- When executing upon confirmation, use the exact agreed parameters and notify the user with the result and action link.
+- When executing upon confirmation, use the exact agreed parameters (including 'linked_income_id' or 'source_income' if an income source was agreed upon) and notify the user with the result and action link.
 
 4. CATEGORY & PROJECT INTELLIGENCE:
 - NEVER invent or create unnecessary new categories if a semantically equivalent category exists in F-Tracker.
@@ -1007,11 +1019,19 @@ Users MUST always be shown a clear draft confirmation first before any new trans
   * "Bonus & Other" == "Bonus & Lain-lain"
 - If the user specifies or already has an English category name like "Food and Drink", use "Food and Drink"! Do NOT convert it to "Makanan & Minuman".
 
-5. READ-ONLY TOOLS (IMMEDIATE EXECUTION):
+5. INCOME SOURCE DEDUCTION INTELLIGENCE (linked_income_id):
+- In F-Tracker, expenses can be linked to a specific Income transaction (e.g. "Gaji Bulanan", "Freelance", "THR"), allowing users to track which income envelope is deducted.
+- Look at 'active_incomes' in the F-Tracker Live Context below: each item has 'id', 'description', 'amount', 'remaining_amount', and 'date'.
+- When the user asks to deduct from a specific income or confirms a proposal with an income source:
+  * Pass the income's ID as 'linked_income_id' in 'create_transaction'.
+  * Alternatively, pass the income name as 'source_income'.
+- If the user asks how much remaining funds are in a specific income source, look up 'remaining_amount' from 'active_incomes' and provide a clear answer.
+
+6. READ-ONLY TOOLS (IMMEDIATE EXECUTION):
 - Read-only tools ('get_financial_summary', 'list_transactions', 'get_tasks_summary', 'list_tasks') DO NOT mutate user data.
 - You MUST invoke read-only tools IMMEDIATELY when the user asks for summaries, spending, budgets, balances, or task lists.
 
-6. SATELLITE APP STATUS:
+7. SATELLITE APP STATUS:
 - If a requested satellite app is not linked yet, inform them politely that they can connect F-Tracker or Task Management in the Satellites tab.
 
 Connected Apps Live Context: %s`, currentTimeContext, nowLocal.Format("2006-01-02"), linkedContext)

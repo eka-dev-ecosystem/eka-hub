@@ -705,3 +705,32 @@ func TestChatSessionLifecycle(t *testing.T) {
 		t.Fatalf("expected no error deleting session, got %v", err)
 	}
 }
+
+func TestGeminiTools_LinkedIncomeSchema(t *testing.T) {
+	tools := GetHubGeminiTools()
+	var createTransFn *GeminiFunctionDeclaration
+	for _, fn := range tools.FunctionDeclarations {
+		if fn.Name == "create_transaction" {
+			fnCopy := fn
+			createTransFn = &fnCopy
+			break
+		}
+	}
+
+	if createTransFn == nil {
+		t.Fatalf("expected create_transaction tool to be declared")
+	}
+
+	props, ok := createTransFn.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected properties in parameters")
+	}
+
+	if _, exists := props["linked_income_id"]; !exists {
+		t.Errorf("expected linked_income_id to exist in create_transaction parameters")
+	}
+
+	if _, exists := props["source_income"]; !exists {
+		t.Errorf("expected source_income to exist in create_transaction parameters")
+	}
+}

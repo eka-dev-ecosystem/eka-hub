@@ -126,6 +126,14 @@ func GetHubGeminiTools() GeminiTool {
 							"type":        "STRING",
 							"description": "Optional transaction date in 'YYYY-MM-DD' format relative to user's local date, or 'today' / 'yesterday'. Defaults to today.",
 						},
+						"linked_income_id": map[string]interface{}{
+							"type":        "STRING",
+							"description": "Optional ID of an active Income transaction in F-Tracker that this expense is deducted from (see 'active_incomes' in live context).",
+						},
+						"source_income": map[string]interface{}{
+							"type":        "STRING",
+							"description": "Optional name or keyword of the income source to deduct from (e.g. 'Gaji', 'Freelance'). If linked_income_id is not directly known, F-Tracker will automatically match by name.",
+						},
 					},
 					"required": []string{"amount", "type", "description"},
 				},
