@@ -156,6 +156,10 @@ func GetHubGeminiTools() GeminiTool {
 							"type":        "STRING",
 							"description": "Filter by date: 'today', 'yesterday', or specific date 'YYYY-MM-DD'.",
 						},
+						"sort": map[string]interface{}{
+							"type":        "STRING",
+							"description": "Sort order: 'highest' (largest amount first - use for finding largest expenses/transactions), 'lowest' (smallest amount first), 'newest' (most recent), 'oldest'.",
+						},
 						"limit": map[string]interface{}{
 							"type":        "INTEGER",
 							"description": "Max number of transactions to return (default: 10).",
@@ -199,7 +203,7 @@ func GetHubGeminiTools() GeminiTool {
 			},
 			{
 				Name:        "generate_cross_app_action",
-				Description: "Generate an authenticated, safe deep link with expected_uid to navigate the user directly into a child app to view or modify details.",
+				Description: "Generate an interactive, contextual deep link button to navigate the user directly into a child app to view a specific item detail (e.g. transaction detail with id=..., task detail with id=...) or view filtered lists (sort=highest, filter=today).",
 				Parameters: map[string]interface{}{
 					"type": "OBJECT",
 					"properties": map[string]interface{}{
@@ -209,15 +213,15 @@ func GetHubGeminiTools() GeminiTool {
 						},
 						"target_route": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Target screen route inside the app, e.g., 'expenses', 'add-expense', 'tasks', 'task-detail'.",
+							"description": "Target screen route inside the app, e.g., 'transactions' or 'tasks'.",
 						},
 						"action_title": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Short user-facing action title, e.g., 'Buka Laporan Pengeluaran', 'Lihat Tugas Tertunda'.",
+							"description": "Short user-facing action title with item name/amount, e.g., '🔍 Lihat Monitor 4K (Rp 2.500.000)', '📌 Buka Tugas: Review PR', '📊 Urutkan Transaksi Terbesar'.",
 						},
 						"query_params": map[string]interface{}{
 							"type":        "STRING",
-							"description": "Optional key=value query string like 'category=food' or 'task_id=99'.",
+							"description": "Optional key=value query string like 'id=6739abcd...' or 'id=45' or 'sort=highest&type=expense' or 'filter=today'.",
 						},
 					},
 					"required": []string{"app_id", "target_route", "action_title"},

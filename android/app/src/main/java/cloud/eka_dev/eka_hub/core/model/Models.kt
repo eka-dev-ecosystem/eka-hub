@@ -73,7 +73,8 @@ data class AIChatResponse(
     val reply: String = "",
     @SerialName("session_id") val sessionId: String? = null,
     @SerialName("tool_calls") val toolCalls: List<ToolCallDetail> = emptyList(),
-    @SerialName("action_links") val actionLinks: List<SuggestedAction> = emptyList()
+    @SerialName("action_links") val actionLinks: List<SuggestedAction> = emptyList(),
+    @SerialName("quick_replies") val quickReplies: List<String> = emptyList()
 )
 
 @Serializable
@@ -112,6 +113,7 @@ data class ChatMessage(
     val role: String, // "user" or "assistant"
     val content: String,
     val actions: List<SuggestedAction> = emptyList(),
+    val quickReplies: List<String> = emptyList(),
     val isStreaming: Boolean = false
 )
 

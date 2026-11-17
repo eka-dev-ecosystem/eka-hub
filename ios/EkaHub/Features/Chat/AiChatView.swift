@@ -48,7 +48,12 @@ public struct AiChatView: View {
                                 ForEach(viewModel.messages) { msg in
                                     GeminiMessageRow(
                                         message: msg,
-                                        onExecuteDeepLink: onExecuteDeepLink
+                                        onExecuteDeepLink: onExecuteDeepLink,
+                                        onSendQuickReply: { reply in
+                                            Task {
+                                                await viewModel.sendQuickPrompt(reply)
+                                            }
+                                        }
                                     )
                                     .id(msg.id)
                                 }
@@ -404,6 +409,7 @@ public struct AiChatView: View {
 private struct GeminiMessageRow: View {
     let message: ChatMessageItem
     let onExecuteDeepLink: (URL) -> Void
+    var onSendQuickReply: ((String) -> Void)? = nil
     @State private var copied = false
 
     var body: some View {
@@ -458,6 +464,31 @@ private struct GeminiMessageRow: View {
 
                     GeminiMarkdownView(content: message.content)
                         .textSelection(.enabled)
+
+                    if let quickReplies = message.quickReplies, !quickReplies.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(quickReplies, id: \.self) { reply in
+                                    let isPositive = reply.lowercased().contains("ya") || reply.contains("✅")
+                                    Button(action: { onSendQuickReply?(reply) }) {
+                                        Text(reply)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(isPositive ? Color(hex: "#34D399") : Color(hex: "#F87171"))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 8)
+                                            .background((isPositive ? Color(hex: "#10B981") : Color(hex: "#EF4444")).opacity(0.18))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke((isPositive ? Color(hex: "#10B981") : Color(hex: "#EF4444")).opacity(0.5), lineWidth: 1)
+                                            )
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
 
                     if let actions = message.actionLinks, !actions.isEmpty {
                         VStack(spacing: 8) {

@@ -126,6 +126,7 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
                     val aiData = resp.data
                     val fullReply = aiData.reply
                     val actions = aiData.actionLinks
+                    val quickReplies = aiData.quickReplies
 
                     if (!aiData.sessionId.isNullOrBlank()) {
                         _currentSessionId.value = aiData.sessionId
@@ -138,6 +139,7 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
                         role = "assistant",
                         content = "",
                         actions = actions,
+                        quickReplies = quickReplies,
                         isStreaming = true
                     )
                     _messages.value = _messages.value + assistantMsg

@@ -11,6 +11,7 @@ import (
 	"golang/database"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -328,6 +329,38 @@ func (s *hubService) GetAvailableTools(ctx context.Context, userID string) (*Hub
 	}, nil
 }
 
+func formatRupiah(amount float64) string {
+	intVal := int64(amount)
+	strVal := fmt.Sprintf("%d", intVal)
+	if intVal < 0 {
+		strVal = fmt.Sprintf("%d", -intVal)
+	}
+	var res []byte
+	n := len(strVal)
+	for i, c := range strVal {
+		res = append(res, byte(c))
+		if (n-1-i)%3 == 0 && i != n-1 {
+			res = append(res, '.')
+		}
+	}
+	if intVal < 0 {
+		return "-" + string(res)
+	}
+	return string(res)
+}
+
+func deduplicateActions(actions []SuggestedAction) []SuggestedAction {
+	seen := make(map[string]bool)
+	var res []SuggestedAction
+	for _, a := range actions {
+		if a.DeepLink != "" && !seen[a.DeepLink] {
+			seen[a.DeepLink] = true
+			res = append(res, a)
+		}
+	}
+	return res
+}
+
 func (s *hubService) ExecuteTool(ctx context.Context, userID string, req *ExecuteToolRequest) (*ToolExecutionResult, error) {
 	apps, err := s.repo.GetLinkedApps(ctx, userID)
 	if err != nil {
@@ -412,9 +445,17 @@ func (s *hubService) ExecuteTool(ctx context.Context, userID string, req *Execut
 			expectedUID = taskApp.ConnectedUID
 		}
 
-		link := fmt.Sprintf("%s%s?expected_uid=%s", scheme, strings.TrimPrefix(targetRoute, "/"), expectedUID)
-		if queryParams != "" {
-			link = fmt.Sprintf("%s&%s", link, queryParams)
+		cleanRoute := strings.TrimPrefix(targetRoute, "/")
+		if strings.Contains(strings.ToLower(appID), "track") && (cleanRoute == "expenses" || cleanRoute == "transaction" || cleanRoute == "expense") {
+			cleanRoute = "transactions"
+		}
+		if strings.Contains(strings.ToLower(appID), "task") && cleanRoute == "task" {
+			cleanRoute = "tasks"
+		}
+		cleanQuery := strings.TrimLeft(queryParams, "?&")
+		link := fmt.Sprintf("%s%s?expected_uid=%s", scheme, cleanRoute, expectedUID)
+		if cleanQuery != "" {
+			link = fmt.Sprintf("%s&%s", link, cleanQuery)
 		}
 
 		action := &SuggestedAction{
@@ -500,19 +541,53 @@ func (s *hubService) executeTaskAppMCPTool(ctx context.Context, app *LinkedApp, 
 	if toolName == "create_task" {
 		title, _ := args["title"].(string)
 		msg = fmt.Sprintf("Tugas '%s' berhasil dibuat di Task Management", title)
+		deepLink := fmt.Sprintf("%stasks?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
+		if resMap, ok := rpcResp.Result.(map[string]interface{}); ok {
+			var taskIDVal interface{}
+			if id, ok := resMap["id"]; ok && id != nil {
+				taskIDVal = id
+			} else if taskObj, ok := resMap["task"].(map[string]interface{}); ok {
+				if id, ok := taskObj["id"]; ok && id != nil {
+					taskIDVal = id
+				}
+			}
+			if taskIDVal != nil {
+				deepLink = fmt.Sprintf("%stasks?id=%v&expected_uid=%s", app.CustomURLScheme, taskIDVal, app.ConnectedUID)
+			}
+		}
 		action = &SuggestedAction{
-			Title:       "Lihat Tugas di Task Management",
+			Title:       fmt.Sprintf("📌 Lihat Tugas: %s", title),
 			Description: title,
 			AppID:       app.AppID,
-			DeepLink:    fmt.Sprintf("%stasks?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+			DeepLink:    deepLink,
 		}
 	} else if toolName == "list_tasks" {
 		msg = "Daftar tugas berhasil diambil dari Task Management"
+		deepLink := fmt.Sprintf("%stasks?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
+		var queryParts []string
+		if filter, ok := args["filter"].(string); ok && filter != "" {
+			queryParts = append(queryParts, "filter="+url.QueryEscape(filter))
+		}
+		if priority, ok := args["priority"].(string); ok && priority != "" {
+			queryParts = append(queryParts, "priority="+url.QueryEscape(priority))
+		}
+		if status, ok := args["status"].(string); ok && status != "" {
+			queryParts = append(queryParts, "status="+url.QueryEscape(status))
+		}
+		if search, ok := args["search"].(string); ok && search != "" {
+			queryParts = append(queryParts, "search="+url.QueryEscape(search))
+		}
+		if isFocus, ok := args["is_focus"].(bool); ok && isFocus {
+			queryParts = append(queryParts, "filter=today")
+		}
+		if len(queryParts) > 0 {
+			deepLink = fmt.Sprintf("%s&%s", deepLink, strings.Join(queryParts, "&"))
+		}
 		action = &SuggestedAction{
-			Title:       "Buka Task Management",
-			Description: "Lihat semua tugas harian",
+			Title:       "📋 Buka Task Management",
+			Description: "Lihat daftar tugas",
 			AppID:       app.AppID,
-			DeepLink:    fmt.Sprintf("%stasks?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+			DeepLink:    deepLink,
 		}
 	}
 
@@ -607,11 +682,22 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 					}
 				}
 
+				var parsedContent map[string]interface{}
+				if resMap, ok := rpcResp.Result.(map[string]interface{}); ok {
+					if contentList, ok := resMap["content"].([]interface{}); ok && len(contentList) > 0 {
+						if firstContent, ok := contentList[0].(map[string]interface{}); ok {
+							if txt, ok := firstContent["text"].(string); ok && txt != "" {
+								_ = json.Unmarshal([]byte(txt), &parsedContent)
+							}
+						}
+					}
+				}
+
 				action := &SuggestedAction{
 					Title:       "Lihat Transaksi di F-Tracker",
 					Description: "Buka daftar transaksi",
 					AppID:       app.AppID,
-					DeepLink:    fmt.Sprintf("%sexpenses?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+					DeepLink:    fmt.Sprintf("%stransactions?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
 				}
 
 				successMsg := fmt.Sprintf("Aksi '%s' pada F-Tracker berhasil", toolName)
@@ -626,16 +712,85 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 					case json.Number:
 						amt, _ = v.Float64()
 					}
+
+					var txID string
+					if parsedContent != nil {
+						if txObj, ok := parsedContent["transaction"].(map[string]interface{}); ok {
+							if id, ok := txObj["id"].(string); ok && id != "" {
+								txID = id
+							} else if id, ok := txObj["_id"].(string); ok && id != "" {
+								txID = id
+							}
+						}
+					}
+
+					deepLink := fmt.Sprintf("%stransactions?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
+					if txID != "" {
+						deepLink = fmt.Sprintf("%stransactions?id=%s&expected_uid=%s", app.CustomURLScheme, txID, app.ConnectedUID)
+					}
+
 					if amt > 0 {
-						successMsg = fmt.Sprintf("Transaksi '%s' sebesar Rp %.0f berhasil dicatat di F-Tracker", desc, amt)
+						successMsg = fmt.Sprintf("Transaksi '%s' sebesar Rp %s berhasil dicatat di F-Tracker", desc, formatRupiah(amt))
 					} else {
 						successMsg = fmt.Sprintf("Transaksi '%s' berhasil dicatat di F-Tracker", desc)
 					}
+
+					actionTitle := fmt.Sprintf("🔍 Lihat %s (Rp %s)", desc, formatRupiah(amt))
+					if amt <= 0 {
+						actionTitle = fmt.Sprintf("🔍 Lihat %s", desc)
+					}
+
 					action = &SuggestedAction{
-						Title:       "Lihat Pengeluaran di F-Tracker",
+						Title:       actionTitle,
 						Description: desc,
 						AppID:       app.AppID,
-						DeepLink:    fmt.Sprintf("%sexpenses?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+						DeepLink:    deepLink,
+					}
+				} else if toolName == "list_transactions" {
+					if parsedContent != nil {
+						if txList, ok := parsedContent["transactions"].([]interface{}); ok && len(txList) > 0 {
+							var distinctActions []SuggestedAction
+							limitItems := 3
+							if len(txList) < limitItems {
+								limitItems = len(txList)
+							}
+							for i := 0; i < limitItems; i++ {
+								if txItem, ok := txList[i].(map[string]interface{}); ok {
+									itemID, _ := txItem["id"].(string)
+									if itemID == "" {
+										itemID, _ = txItem["_id"].(string)
+									}
+									itemDesc, _ := txItem["description"].(string)
+									var itemAmt float64
+									switch v := txItem["amount"].(type) {
+									case float64:
+										itemAmt = v
+									case int:
+										itemAmt = float64(v)
+									case json.Number:
+										itemAmt, _ = v.Float64()
+									}
+									if itemID != "" {
+										title := fmt.Sprintf("🔍 %s (Rp %s)", itemDesc, formatRupiah(itemAmt))
+										if itemAmt <= 0 {
+											title = fmt.Sprintf("🔍 %s", itemDesc)
+										}
+										distinctActions = append(distinctActions, SuggestedAction{
+											Title:       title,
+											Description: itemDesc,
+											AppID:       app.AppID,
+											DeepLink:    fmt.Sprintf("%stransactions?id=%s&expected_uid=%s", app.CustomURLScheme, itemID, app.ConnectedUID),
+										})
+									}
+								}
+							}
+							if len(distinctActions) > 0 {
+								action = &distinctActions[0]
+								if resMap, ok := rpcResp.Result.(map[string]interface{}); ok {
+									resMap["suggested_actions"] = distinctActions
+								}
+							}
+						}
 					}
 				}
 
@@ -694,11 +849,44 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 			case int:
 				amt = float64(v)
 			}
+			var txID string
+			if resBody != nil {
+				if dataMap, ok := resBody["data"].(map[string]interface{}); ok {
+					if id, ok := dataMap["id"].(string); ok && id != "" {
+						txID = id
+					} else if id, ok := dataMap["_id"].(string); ok && id != "" {
+						txID = id
+					}
+				}
+			}
+			deepLink := fmt.Sprintf("%stransactions?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID)
+			if txID != "" {
+				deepLink = fmt.Sprintf("%stransactions?id=%s&expected_uid=%s", app.CustomURLScheme, txID, app.ConnectedUID)
+			}
+
 			if amt > 0 {
-				msg = fmt.Sprintf("Transaksi '%s' sebesar Rp %.0f berhasil dicatat di F-Tracker", desc, amt)
+				msg = fmt.Sprintf("Transaksi '%s' sebesar Rp %s berhasil dicatat di F-Tracker", desc, formatRupiah(amt))
 			} else {
 				msg = fmt.Sprintf("Transaksi '%s' berhasil dicatat di F-Tracker", desc)
 			}
+
+			actionTitle := fmt.Sprintf("🔍 Lihat %s (Rp %s)", desc, formatRupiah(amt))
+			if amt <= 0 {
+				actionTitle = fmt.Sprintf("🔍 Lihat %s", desc)
+			}
+
+			return &ToolExecutionResult{
+				ToolName: toolName,
+				Success:  isSuccess,
+				Message:  msg,
+				Data:     resBody,
+				Action: &SuggestedAction{
+					Title:       actionTitle,
+					Description: desc,
+					AppID:       app.AppID,
+					DeepLink:    deepLink,
+				},
+			}, nil
 		} else {
 			errMsg, _ := resBody["message"].(string)
 			if errMsg == "" {
@@ -716,7 +904,7 @@ func (s *hubService) executeFTrackerTool(ctx context.Context, app *LinkedApp, to
 				Title:       "Lihat Pengeluaran di F-Tracker",
 				Description: desc,
 				AppID:       app.AppID,
-				DeepLink:    fmt.Sprintf("%sexpenses?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
+				DeepLink:    fmt.Sprintf("%stransactions?expected_uid=%s", app.CustomURLScheme, app.ConnectedUID),
 			},
 		}, nil
 	}
@@ -773,6 +961,13 @@ func (s *hubService) ProcessAIChat(ctx context.Context, userID, userMessage, ses
 	res, err := s.callGeminiWithTools(ctx, apiKey, userID, userMessage, summaries, history)
 	if err != nil {
 		return nil, fmt.Errorf("AI processing error: %w", err)
+	}
+
+	// Attach One-Tap Quick Confirmation Replies if the response is a draft proposal
+	if strings.Contains(res.Reply, "Konfirmasi Pencatatan Transaksi") {
+		res.QuickReplies = []string{"✅ Ya, catat", "❌ Batal"}
+	} else if strings.Contains(res.Reply, "Konfirmasi Pembuatan Tugas") {
+		res.QuickReplies = []string{"✅ Ya, buatkan tugas", "❌ Batal"}
 	}
 
 	// Persist messages with session association
@@ -1117,8 +1312,18 @@ Connected Apps Live Context: %s`, currentTimeContext, nowLocal.Format("2006-01-0
 				Result:    toolResult,
 			})
 
-			if toolResult != nil && toolResult.Action != nil {
-				actionLinks = append(actionLinks, *toolResult.Action)
+			if toolResult != nil {
+				if resDataMap, ok := toolResult.Data.(map[string]interface{}); ok {
+					if extraActions, ok := resDataMap["suggested_actions"].([]SuggestedAction); ok && len(extraActions) > 0 {
+						for _, act := range extraActions {
+							actionLinks = append(actionLinks, act)
+						}
+					} else if toolResult.Action != nil {
+						actionLinks = append(actionLinks, *toolResult.Action)
+					}
+				} else if toolResult.Action != nil {
+					actionLinks = append(actionLinks, *toolResult.Action)
+				}
 			}
 
 			responseVal := map[string]interface{}{"status": "success"}
@@ -1188,7 +1393,7 @@ Connected Apps Live Context: %s`, currentTimeContext, nowLocal.Format("2006-01-0
 						return &AIChatResponse{
 							Reply:       finalReply,
 							ToolCalls:   toolCalls,
-							ActionLinks: actionLinks,
+							ActionLinks: deduplicateActions(actionLinks),
 						}, nil
 					}
 				}
@@ -1206,7 +1411,7 @@ Connected Apps Live Context: %s`, currentTimeContext, nowLocal.Format("2006-01-0
 		return &AIChatResponse{
 			Reply:       sb.String(),
 			ToolCalls:   toolCalls,
-			ActionLinks: actionLinks,
+			ActionLinks: deduplicateActions(actionLinks),
 		}, nil
 	}
 

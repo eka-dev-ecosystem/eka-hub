@@ -110,7 +110,8 @@ public final class AiChatViewModel {
                 role: .assistant,
                 content: "",
                 toolCalls: response.toolCalls,
-                actionLinks: response.actionLinks
+                actionLinks: response.actionLinks,
+                quickReplies: response.quickReplies
             )
             messages.append(streamingMsg)
             let streamingId = streamingMsg.id

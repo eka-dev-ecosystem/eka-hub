@@ -168,10 +168,43 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                         }
                     }
 
-                    if (msg.actions.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                    if (msg.quickReplies.isNotEmpty() && !msg.isStreaming) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            msg.quickReplies.forEach { reply ->
+                                val isPositive = reply.contains("Ya", ignoreCase = true) || reply.contains("✅")
+                                Surface(
+                                    color = if (isPositive) Color(0xFF10B981).copy(alpha = 0.2f) else Color(0xFFEF4444).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .border(
+                                            1.dp,
+                                            if (isPositive) Color(0xFF10B981).copy(alpha = 0.6f) else Color(0xFFEF4444).copy(alpha = 0.5f),
+                                            RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable {
+                                            viewModel.sendMessage(reply)
+                                        }
+                                ) {
+                                    Text(
+                                        text = reply,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isPositive) Color(0xFF34D399) else Color(0xFFF87171),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (msg.actions.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
                             msg.actions.forEach { action ->
@@ -189,7 +222,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = HubCyan,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                                     )
                                 }
                             }

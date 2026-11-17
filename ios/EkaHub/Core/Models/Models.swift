@@ -317,12 +317,14 @@ public struct AIChatResponse: Codable, Sendable {
     public let sessionId: String?
     public let toolCalls: [ToolCallDetail]?
     public let actionLinks: [SuggestedAction]?
+    public let quickReplies: [String]?
 
     enum CodingKeys: String, CodingKey {
         case reply
         case sessionId = "session_id"
         case toolCalls = "tool_calls"
         case actionLinks = "action_links"
+        case quickReplies = "quick_replies"
     }
 }
 
@@ -388,6 +390,7 @@ public struct ChatMessageItem: Identifiable, Sendable {
     public var content: String
     public let toolCalls: [ToolCallDetail]?
     public let actionLinks: [SuggestedAction]?
+    public let quickReplies: [String]?
     public let timestamp: Date
 
     public enum ChatRole: String, Sendable {
@@ -401,6 +404,7 @@ public struct ChatMessageItem: Identifiable, Sendable {
         content: String,
         toolCalls: [ToolCallDetail]? = nil,
         actionLinks: [SuggestedAction]? = nil,
+        quickReplies: [String]? = nil,
         timestamp: Date = Date()
     ) {
         self.id = id
@@ -408,6 +412,7 @@ public struct ChatMessageItem: Identifiable, Sendable {
         self.content = content
         self.toolCalls = toolCalls
         self.actionLinks = actionLinks
+        self.quickReplies = quickReplies
         self.timestamp = timestamp
     }
 }

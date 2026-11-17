@@ -111,10 +111,11 @@ type ToolCallDetail struct {
 
 // AIChatResponse returns the model response, invoked tools, and actionable deep links.
 type AIChatResponse struct {
-	Reply       string            `json:"reply"`
-	SessionID   string            `json:"session_id"`
-	ToolCalls   []ToolCallDetail  `json:"tool_calls,omitempty"`
-	ActionLinks []SuggestedAction `json:"action_links,omitempty"`
+	Reply        string            `json:"reply"`
+	SessionID    string            `json:"session_id"`
+	ToolCalls    []ToolCallDetail  `json:"tool_calls,omitempty"`
+	ActionLinks  []SuggestedAction `json:"action_links,omitempty"`
+	QuickReplies []string          `json:"quick_replies,omitempty"`
 }
 
 // ExecuteToolRequest allows calling an integrated satellite tool directly.

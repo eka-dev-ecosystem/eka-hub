@@ -420,7 +420,7 @@ func TestExecuteTool_CreateTransaction(t *testing.T) {
 		t.Fatalf("expected tool execution to succeed, got: %s", execRes.Message)
 	}
 
-	if !strings.Contains(execRes.Message, "Makan siang padang") || !strings.Contains(execRes.Message, "50000") {
+	if !strings.Contains(execRes.Message, "Makan siang padang") || (!strings.Contains(execRes.Message, "50000") && !strings.Contains(execRes.Message, "50.000")) {
 		t.Errorf("expected message to mention description and amount, got: %s", execRes.Message)
 	}
 
@@ -732,5 +732,71 @@ func TestGeminiTools_LinkedIncomeSchema(t *testing.T) {
 
 	if _, exists := props["source_income"]; !exists {
 		t.Errorf("expected source_income to exist in create_transaction parameters")
+	}
+}
+
+func TestGeminiTools_SortInListTransactions(t *testing.T) {
+	tools := GetHubGeminiTools()
+	var listTransFn *GeminiFunctionDeclaration
+	for _, fn := range tools.FunctionDeclarations {
+		if fn.Name == "list_transactions" {
+			fnCopy := fn
+			listTransFn = &fnCopy
+			break
+		}
+	}
+
+	if listTransFn == nil {
+		t.Fatalf("expected list_transactions tool to be declared")
+	}
+
+	props, ok := listTransFn.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected properties in parameters")
+	}
+
+	if _, exists := props["sort"]; !exists {
+		t.Errorf("expected sort to exist in list_transactions parameters")
+	}
+}
+
+func TestProcessAIChat_QuickRepliesOnDraftConfirmation(t *testing.T) {
+	repo := newMockHubRepo()
+	service := NewHubService(repo, &mockTransactor{})
+
+	mockGeminiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		resp := map[string]interface{}{
+			"candidates": []map[string]interface{}{
+				{
+					"content": map[string]interface{}{
+						"role": "model",
+						"parts": []map[string]interface{}{
+							{
+								"text": "### 📝 Konfirmasi Pencatatan Transaksi\nSaya telah menyiapkan rincian transaksi untuk dicatat ke **F-Tracker**:\n- **Nominal**: Rp 35.000\n- **Keterangan**: Kopi\n\nApakah rincian dan kategorinya sudah sesuai?",
+							},
+						},
+					},
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockGeminiServer.Close()
+
+	t.Setenv("GEMINI_API_KEY", "test-key-123")
+	t.Setenv("GEMINI_BASE_URL", mockGeminiServer.URL)
+
+	chatResp, err := service.ProcessAIChat(context.Background(), "user-uuid-1", "Catat kopi 35rb", "")
+	if err != nil {
+		t.Fatalf("expected no error from ProcessAIChat, got %v", err)
+	}
+
+	if len(chatResp.QuickReplies) == 0 {
+		t.Fatalf("expected quick replies to be attached for draft confirmation")
+	}
+
+	if chatResp.QuickReplies[0] != "✅ Ya, catat" {
+		t.Errorf("expected first quick reply to be '✅ Ya, catat', got %s", chatResp.QuickReplies[0])
 	}
 }
