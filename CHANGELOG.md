@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.7.0...backend-v1.8.0) (2026-11-17)
+
+
+### Features
+
+* **ai-hub:** support income source linking (linkedIncomeId) for f-tracker expenses ([7c30f76](https://github.com/eka-dev-ecosystem/eka-hub/commit/7c30f76233bc486ce83495b0a7af87958aefa768))
+
 # [1.7.0](https://github.com/eka-dev-ecosystem/eka-hub/compare/backend-v1.6.0...backend-v1.7.0) (2026-11-17)
 
 
