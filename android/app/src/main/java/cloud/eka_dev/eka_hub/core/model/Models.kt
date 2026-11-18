@@ -114,7 +114,9 @@ data class ChatMessage(
     val content: String,
     val actions: List<SuggestedAction> = emptyList(),
     val quickReplies: List<String> = emptyList(),
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    val isFailed: Boolean = false,
+    val errorMessage: String? = null
 )
 
 data class AccountMismatchState(

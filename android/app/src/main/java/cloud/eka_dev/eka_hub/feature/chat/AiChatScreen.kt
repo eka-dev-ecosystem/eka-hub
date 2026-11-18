@@ -14,7 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +44,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
     val isHistoryLoading by viewModel.isHistoryLoading.collectAsState()
+    val lastFailedPrompt by viewModel.lastFailedPrompt.collectAsState()
     var showHistorySheet by remember { mutableStateOf(false) }
 
     var inputQuery by remember { mutableStateOf("") }
@@ -142,11 +146,19 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                     horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
                 ) {
                     Surface(
-                        color = if (isUser) HubIndigo else HubDarkCard,
+                        color = when {
+                            isUser && msg.isFailed -> Color(0xFF7F1D1D).copy(alpha = 0.55f)
+                            isUser -> HubIndigo
+                            else -> HubDarkCard
+                        },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.border(
                             1.dp,
-                            if (isUser) Color.Transparent else HubDarkBorder,
+                            when {
+                                isUser && msg.isFailed -> Color(0xFFEF4444).copy(alpha = 0.6f)
+                                isUser -> Color.Transparent
+                                else -> HubDarkBorder
+                            },
                             RoundedCornerShape(16.dp)
                         )
                     ) {
@@ -165,6 +177,66 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                                     textColor = Color(0xFFF1F5F9)
                                 )
                             }
+                        }
+                    }
+
+                    if (isUser && msg.isFailed) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFF87171),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = msg.errorMessage ?: "Gagal terkirim",
+                                fontSize = 11.sp,
+                                color = Color(0xFFF87171)
+                            )
+                            Surface(
+                                color = Color(0xFFEF4444).copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        viewModel.retryMessage(msg.id)
+                                    }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Text(
+                                        text = "Coba Lagi",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Salin",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = HubCyan,
+                                modifier = Modifier
+                                    .clickable {
+                                        inputQuery = msg.content
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
                         }
                     }
 
@@ -234,6 +306,63 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
             if (isLoading) {
                 item(key = "thinking_indicator") {
                     AnimatedThinkingIndicator()
+                }
+            }
+        }
+
+        if (lastFailedPrompt != null) {
+            Surface(
+                color = Color(0xFF1F1315),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFF87171),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Pesan gagal dikirim (Koneksi terputus)",
+                        fontSize = 12.sp,
+                        color = Color(0xFFFCA5A5),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        color = Color(0xFFEF4444),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.clickable {
+                            viewModel.retryLastMessage()
+                        }
+                    ) {
+                        Text(
+                            text = "Coba Lagi",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Tutup",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable {
+                                viewModel.clearFailedPrompt()
+                            }
+                    )
                 }
             }
         }

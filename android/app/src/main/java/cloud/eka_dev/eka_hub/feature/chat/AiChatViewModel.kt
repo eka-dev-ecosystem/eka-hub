@@ -38,6 +38,12 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
     private val _isHistoryLoading = MutableStateFlow(false)
     val isHistoryLoading: StateFlow<Boolean> = _isHistoryLoading.asStateFlow()
 
+    private val _lastFailedPrompt = MutableStateFlow<String?>(null)
+    val lastFailedPrompt: StateFlow<String?> = _lastFailedPrompt.asStateFlow()
+
+    private val _lastFailedMessageId = MutableStateFlow<String?>(null)
+    val lastFailedMessageId: StateFlow<String?> = _lastFailedMessageId.asStateFlow()
+
     init {
         loadSessions()
     }
@@ -108,12 +114,40 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
         }
     }
 
-    fun sendMessage(query: String) {
+    fun retryMessage(msgId: String) {
+        val msg = _messages.value.find { it.id == msgId } ?: return
+        sendMessage(msg.content, targetMessageId = msgId)
+    }
+
+    fun retryLastMessage() {
+        val lastId = _lastFailedMessageId.value
+        if (lastId != null) {
+            retryMessage(lastId)
+        } else {
+            _lastFailedPrompt.value?.let { sendMessage(it) }
+        }
+    }
+
+    fun clearFailedPrompt() {
+        _lastFailedPrompt.value = null
+        _lastFailedMessageId.value = null
+    }
+
+    fun sendMessage(query: String, targetMessageId: String? = null) {
         val trimmed = query.trim()
         if (trimmed.isEmpty() || _isLoading.value) return
 
-        val userMsg = ChatMessage(role = "user", content = trimmed)
-        _messages.value = _messages.value + userMsg
+        val userMsgId: String
+        if (targetMessageId != null) {
+            userMsgId = targetMessageId
+            _messages.value = _messages.value.map {
+                if (it.id == targetMessageId) it.copy(isFailed = false, errorMessage = null) else it
+            }
+        } else {
+            val userMsg = ChatMessage(role = "user", content = trimmed)
+            userMsgId = userMsg.id
+            _messages.value = _messages.value + userMsg
+        }
         _isLoading.value = true
 
         viewModelScope.launch {
@@ -123,6 +157,9 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
 
                 val resp = apiClient.apiService.sendChatMessage(payload)
                 if (resp.success && resp.data != null) {
+                    _lastFailedPrompt.value = null
+                    _lastFailedMessageId.value = null
+
                     val aiData = resp.data
                     val fullReply = aiData.reply
                     val actions = aiData.actionLinks
@@ -163,30 +200,35 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
                     loadSessions()
                 } else {
                     val errMsg = resp.message ?: resp.error ?: "Gagal memproses pesan."
-                    _messages.value = _messages.value + ChatMessage(
-                        role = "assistant",
-                        content = "Maaf, terjadi kendala saat menghubungkan ke satelit: $errMsg"
-                    )
+                    _lastFailedPrompt.value = trimmed
+                    _lastFailedMessageId.value = userMsgId
+                    _messages.value = _messages.value.map {
+                        if (it.id == userMsgId) it.copy(isFailed = true, errorMessage = errMsg) else it
+                    }
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
-                // If offline / network error, provide intelligent satellite fallback
-                val fallbackContent = when {
-                    trimmed.contains("uang", ignoreCase = true) || trimmed.contains("pengeluaran", ignoreCase = true) ->
-                        "Pengeluaran F-Tracker tercatat Rp 4.250.000. Sisa budget bulan ini Rp 5.750.000."
-                    trimmed.contains("tugas", ignoreCase = true) || trimmed.contains("task", ignoreCase = true) ->
-                        "Anda memiliki 5 tugas pending di Task Management. 2 deadline jatuh tempo hari ini."
-                    else ->
-                        "Tidak dapat terhubung ke AI server saat ini (${e.localizedMessage}). Silakan coba sesaat lagi."
+                _lastFailedPrompt.value = trimmed
+                _lastFailedMessageId.value = userMsgId
+
+                val errMsg = e.localizedMessage ?: "Koneksi terputus"
+                val isNetworkError = errMsg.contains("timeout", ignoreCase = true) ||
+                        errMsg.contains("connect", ignoreCase = true) ||
+                        errMsg.contains("cancel", ignoreCase = true) ||
+                        errMsg.contains("network", ignoreCase = true) ||
+                        errMsg.contains("offline", ignoreCase = true) ||
+                        errMsg.contains("host", ignoreCase = true) ||
+                        errMsg.contains("broken pipe", ignoreCase = true)
+
+                val userFriendly = if (isNetworkError) {
+                    "Koneksi terputus saat aplikasi ditutup/berpindah. Ketuk Coba Lagi."
+                } else {
+                    "Gagal memproses pesan: $errMsg"
                 }
-                _messages.value = _messages.value + ChatMessage(
-                    role = "assistant",
-                    content = fallbackContent,
-                    actions = listOf(
-                        SuggestedAction("Buka F-Tracker", deepLink = "ftracker://dashboard"),
-                        SuggestedAction("Buka Task Management", deepLink = "taskhub://dashboard")
-                    )
-                )
+
+                _messages.value = _messages.value.map {
+                    if (it.id == userMsgId) it.copy(isFailed = true, errorMessage = userFriendly) else it
+                }
                 _isLoading.value = false
             }
         }

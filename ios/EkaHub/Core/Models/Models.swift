@@ -392,6 +392,8 @@ public struct ChatMessageItem: Identifiable, Sendable {
     public let actionLinks: [SuggestedAction]?
     public let quickReplies: [String]?
     public let timestamp: Date
+    public var isFailed: Bool
+    public var errorMessage: String?
 
     public enum ChatRole: String, Sendable {
         case user
@@ -405,7 +407,9 @@ public struct ChatMessageItem: Identifiable, Sendable {
         toolCalls: [ToolCallDetail]? = nil,
         actionLinks: [SuggestedAction]? = nil,
         quickReplies: [String]? = nil,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        isFailed: Bool = false,
+        errorMessage: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -414,6 +418,8 @@ public struct ChatMessageItem: Identifiable, Sendable {
         self.actionLinks = actionLinks
         self.quickReplies = quickReplies
         self.timestamp = timestamp
+        self.isFailed = isFailed
+        self.errorMessage = errorMessage
     }
 }
 

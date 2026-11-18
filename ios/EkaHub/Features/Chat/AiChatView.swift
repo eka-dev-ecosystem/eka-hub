@@ -53,6 +53,15 @@ public struct AiChatView: View {
                                             Task {
                                                 await viewModel.sendQuickPrompt(reply)
                                             }
+                                        },
+                                        onRetryMessage: { id in
+                                            Task {
+                                                await viewModel.retryMessage(id: id)
+                                            }
+                                        },
+                                        onRestorePrompt: { text in
+                                            viewModel.restorePrompt(text)
+                                            isInputFocused = true
                                         }
                                     )
                                     .id(msg.id)
@@ -349,6 +358,62 @@ public struct AiChatView: View {
 
     private var geminiComposerBar: some View {
         VStack(spacing: 0) {
+            if let banner = viewModel.errorBanner, let _ = viewModel.lastFailedPrompt {
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: "#F87171"))
+
+                    Text(banner)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#FCA5A5"))
+                        .lineLimit(2)
+
+                    Spacer()
+
+                    Button(action: {
+                        Task {
+                            await viewModel.retryLastMessage()
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Coba Lagi")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(hex: "#EF4444"))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: {
+                        withAnimation {
+                            viewModel.errorBanner = nil
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AppColors.textMuted)
+                            .padding(4)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(hex: "#1F1315").opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(hex: "#EF4444").opacity(0.35), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 14)
+                .padding(.bottom, 6)
+            }
+
             HStack(alignment: .bottom, spacing: 10) {
                 TextField(L10n.Hub.chatPlaceholder, text: $viewModel.inputText, axis: .vertical)
                     .lineLimit(1...5)
@@ -410,29 +475,87 @@ private struct GeminiMessageRow: View {
     let message: ChatMessageItem
     let onExecuteDeepLink: (URL) -> Void
     var onSendQuickReply: ((String) -> Void)? = nil
+    var onRetryMessage: ((UUID) -> Void)? = nil
+    var onRestorePrompt: ((String) -> Void)? = nil
     @State private var copied = false
 
     var body: some View {
         if message.role == .user {
-            HStack {
-                Spacer(minLength: 48)
-                Text(message.content)
-                    .font(.system(size: 15))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            colors: [AppColors.geminiBlue.opacity(0.32), AppColors.geminiPurple.opacity(0.28)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack(alignment: .bottom, spacing: 8) {
+                    Spacer(minLength: 48)
+
+                    if message.isFailed {
+                        Button(action: {
+                            onRetryMessage?(message.id)
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("Coba Lagi")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "#F87171"))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: "#EF4444").opacity(0.18))
+                            .overlay(
+                                Capsule().stroke(Color(hex: "#EF4444").opacity(0.4), lineWidth: 1)
+                            )
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text(message.content)
+                        .font(.system(size: 15))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            message.isFailed
+                                ? LinearGradient(
+                                    colors: [Color(hex: "#7F1D1D").opacity(0.6), Color(hex: "#991B1B").opacity(0.4)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: [AppColors.geminiBlue.opacity(0.32), AppColors.geminiPurple.opacity(0.28)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                         )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    message.isFailed
+                                        ? Color(hex: "#EF4444").opacity(0.55)
+                                        : Color.white.opacity(0.16),
+                                    lineWidth: 1
+                                )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+
+                if message.isFailed {
+                    HStack(spacing: 10) {
+                        Spacer(minLength: 48)
+
+                        Label(message.errorMessage ?? "Gagal terkirim", systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(hex: "#F87171"))
+
+                        Button(action: {
+                            onRestorePrompt?(message.content)
+                        }) {
+                            Text("Salin ke Input")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(AppColors.geminiCyan)
+                                .underline()
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
         } else {
             HStack(alignment: .top, spacing: 12) {
