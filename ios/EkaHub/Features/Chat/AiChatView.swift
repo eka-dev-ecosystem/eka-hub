@@ -48,6 +48,7 @@ public struct AiChatView: View {
                                 ForEach(viewModel.messages) { msg in
                                     GeminiMessageRow(
                                         message: msg,
+                                        isSending: viewModel.isSending,
                                         onExecuteDeepLink: onExecuteDeepLink,
                                         onSendQuickReply: { reply in
                                             Task {
@@ -372,6 +373,7 @@ public struct AiChatView: View {
                     Spacer()
 
                     Button(action: {
+                        guard !viewModel.isSending else { return }
                         Task {
                             await viewModel.retryLastMessage()
                         }
@@ -389,6 +391,8 @@ public struct AiChatView: View {
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .disabled(viewModel.isSending)
+                    .opacity(viewModel.isSending ? 0.5 : 1.0)
 
                     Button(action: {
                         withAnimation {
@@ -426,6 +430,7 @@ public struct AiChatView: View {
                 let canSend = !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isSending
 
                 Button(action: {
+                    guard canSend else { return }
                     isInputFocused = false
                     Task {
                         await viewModel.sendMessage()
@@ -473,6 +478,7 @@ public struct AiChatView: View {
 
 private struct GeminiMessageRow: View {
     let message: ChatMessageItem
+    var isSending: Bool = false
     let onExecuteDeepLink: (URL) -> Void
     var onSendQuickReply: ((String) -> Void)? = nil
     var onRetryMessage: ((UUID) -> Void)? = nil
@@ -487,6 +493,7 @@ private struct GeminiMessageRow: View {
 
                     if message.isFailed {
                         Button(action: {
+                            guard !isSending else { return }
                             onRetryMessage?(message.id)
                         }) {
                             HStack(spacing: 4) {
@@ -505,6 +512,8 @@ private struct GeminiMessageRow: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .disabled(isSending)
+                        .opacity(isSending ? 0.45 : 1.0)
                     }
 
                     Text(message.content)
@@ -593,7 +602,10 @@ private struct GeminiMessageRow: View {
                             HStack(spacing: 8) {
                                 ForEach(quickReplies, id: \.self) { reply in
                                     let isPositive = reply.lowercased().contains("ya") || reply.contains("✅")
-                                    Button(action: { onSendQuickReply?(reply) }) {
+                                    Button(action: {
+                                        guard !isSending else { return }
+                                        onSendQuickReply?(reply)
+                                    }) {
                                         Text(reply)
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(isPositive ? Color(hex: "#34D399") : Color(hex: "#F87171"))
@@ -607,6 +619,8 @@ private struct GeminiMessageRow: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                     .buttonStyle(.plain)
+                                    .disabled(isSending)
+                                    .opacity(isSending ? 0.45 : 1.0)
                                 }
                             }
                             .padding(.vertical, 2)

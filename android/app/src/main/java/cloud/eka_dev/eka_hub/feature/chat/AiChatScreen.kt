@@ -203,7 +203,8 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier
                                     .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                    .clickable {
+                                    .alpha(if (isLoading) 0.45f else 1f)
+                                    .clickable(enabled = !isLoading) {
                                         viewModel.retryMessage(msg.id)
                                     }
                             ) {
@@ -257,7 +258,8 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                                             if (isPositive) Color(0xFF10B981).copy(alpha = 0.6f) else Color(0xFFEF4444).copy(alpha = 0.5f),
                                             RoundedCornerShape(12.dp)
                                         )
-                                        .clickable {
+                                        .alpha(if (isLoading) 0.45f else 1f)
+                                        .clickable(enabled = !isLoading) {
                                             viewModel.sendMessage(reply)
                                         }
                                 ) {
@@ -340,9 +342,11 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                     Surface(
                         color = Color(0xFFEF4444),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.clickable {
-                            viewModel.retryLastMessage()
-                        }
+                        modifier = Modifier
+                            .alpha(if (isLoading) 0.5f else 1f)
+                            .clickable(enabled = !isLoading) {
+                                viewModel.retryLastMessage()
+                            }
                     ) {
                         Text(
                             text = "Coba Lagi",
@@ -404,9 +408,11 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
 
             IconButton(
                 onClick = {
-                    val q = inputQuery
-                    inputQuery = ""
-                    viewModel.sendMessage(q)
+                    if (!isLoading && inputQuery.isNotBlank()) {
+                        val q = inputQuery
+                        inputQuery = ""
+                        viewModel.sendMessage(q)
+                    }
                 },
                 enabled = inputQuery.isNotBlank() && !isLoading,
                 modifier = Modifier

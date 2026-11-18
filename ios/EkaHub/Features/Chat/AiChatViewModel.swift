@@ -78,28 +78,35 @@ public final class AiChatViewModel {
     public func sendMessage() async {
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isSending else { return }
+        isSending = true
         inputText = ""
         await submitPrompt(prompt)
     }
 
     public func sendQuickPrompt(_ prompt: String) async {
-        guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !isSending else { return }
-        await submitPrompt(prompt)
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !isSending else { return }
+        isSending = true
+        await submitPrompt(trimmed)
     }
 
     public func retryMessage(id: UUID) async {
         guard !isSending else { return }
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        isSending = true
         let prompt = messages[index].content
         await submitPrompt(prompt, targetMessageId: id)
     }
 
     public func retryLastMessage() async {
         guard !isSending else { return }
+        isSending = true
         if let targetId = lastFailedMessageId, messages.contains(where: { $0.id == targetId }) {
             await retryMessage(id: targetId)
         } else if let prompt = lastFailedPrompt, !prompt.isEmpty {
             await submitPrompt(prompt)
+        } else {
+            isSending = false
         }
     }
 
