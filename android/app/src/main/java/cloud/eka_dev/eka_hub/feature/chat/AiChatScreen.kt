@@ -141,6 +141,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
         ) {
             items(messages, key = { it.id }) { msg ->
                 val isUser = msg.role == "user"
+                val isLatest = msg.id == messages.lastOrNull()?.id
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
@@ -241,7 +242,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                         }
                     }
 
-                    if (msg.quickReplies.isNotEmpty() && !msg.isStreaming) {
+                    if (isLatest && !isLoading && msg.quickReplies.isNotEmpty() && !msg.isStreaming) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),

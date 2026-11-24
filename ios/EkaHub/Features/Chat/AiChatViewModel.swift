@@ -128,6 +128,11 @@ public final class AiChatViewModel {
         errorBanner = nil
         let userMsgId: UUID
 
+        // Invalidate / dismiss quickReplies on all previous messages so they cannot be triggered again
+        for i in messages.indices {
+            messages[i].quickReplies = nil
+        }
+
         if let existingId = targetMessageId, let idx = messages.firstIndex(where: { $0.id == existingId }) {
             userMsgId = existingId
             messages[idx].isFailed = false

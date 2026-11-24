@@ -390,7 +390,7 @@ public struct ChatMessageItem: Identifiable, Sendable {
     public var content: String
     public let toolCalls: [ToolCallDetail]?
     public let actionLinks: [SuggestedAction]?
-    public let quickReplies: [String]?
+    public var quickReplies: [String]?
     public let timestamp: Date
     public var isFailed: Bool
     public var errorMessage: String?

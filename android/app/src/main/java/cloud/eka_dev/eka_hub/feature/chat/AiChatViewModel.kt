@@ -138,15 +138,20 @@ class AiChatViewModel(private val apiClient: ApiClient) : ViewModel() {
         if (trimmed.isEmpty() || _isLoading.value) return
 
         val userMsgId: String
+        // Clear quickReplies on all previous messages so they cannot be triggered again
+        val sanitizedMessages = _messages.value.map {
+            if (it.quickReplies.isNotEmpty()) it.copy(quickReplies = emptyList()) else it
+        }
+
         if (targetMessageId != null) {
             userMsgId = targetMessageId
-            _messages.value = _messages.value.map {
+            _messages.value = sanitizedMessages.map {
                 if (it.id == targetMessageId) it.copy(isFailed = false, errorMessage = null) else it
             }
         } else {
             val userMsg = ChatMessage(role = "user", content = trimmed)
             userMsgId = userMsg.id
-            _messages.value = _messages.value + userMsg
+            _messages.value = sanitizedMessages + userMsg
         }
         _isLoading.value = true
 

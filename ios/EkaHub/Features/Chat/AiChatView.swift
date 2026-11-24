@@ -48,6 +48,7 @@ public struct AiChatView: View {
                                 ForEach(viewModel.messages) { msg in
                                     GeminiMessageRow(
                                         message: msg,
+                                        isLatest: msg.id == viewModel.messages.last?.id,
                                         isSending: viewModel.isSending,
                                         onExecuteDeepLink: onExecuteDeepLink,
                                         onSendQuickReply: { reply in
@@ -478,6 +479,7 @@ public struct AiChatView: View {
 
 private struct GeminiMessageRow: View {
     let message: ChatMessageItem
+    var isLatest: Bool = false
     var isSending: Bool = false
     let onExecuteDeepLink: (URL) -> Void
     var onSendQuickReply: ((String) -> Void)? = nil
@@ -597,7 +599,7 @@ private struct GeminiMessageRow: View {
                     GeminiMarkdownView(content: message.content)
                         .textSelection(.enabled)
 
-                    if let quickReplies = message.quickReplies, !quickReplies.isEmpty {
+                    if isLatest && !isSending, let quickReplies = message.quickReplies, !quickReplies.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(quickReplies, id: \.self) { reply in
